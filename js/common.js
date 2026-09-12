@@ -12,6 +12,8 @@ function getSession() {
 }
 function clearSession() {
   localStorage.removeItem('sn_session');
+  // Google users must also be signed out of Firebase before another person uses this device.
+  if (window.firebase && typeof firebase.auth === 'function') firebase.auth().signOut().catch(() => {});
 }
 function requireRole(role) {
   const s = getSession();
