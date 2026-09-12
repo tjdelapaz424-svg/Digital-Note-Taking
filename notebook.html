@@ -71,6 +71,20 @@
   </div>
 </div>
 
+<div class="modal-backdrop hidden" id="pageTypeModal" role="dialog" aria-modal="true" aria-labelledby="pageTypeTitle">
+  <div class="modal page-type-modal">
+    <h3 id="pageTypeTitle">Choose a page style</h3>
+    <p>Pick the paper that works best for this page.</p>
+    <div class="page-type-options">
+      <button class="page-type-option template-blank" data-template="blank"><span></span><strong>Blank</strong><small>Plain white page</small></button>
+      <button class="page-type-option template-grid" data-template="grid"><span></span><strong>Grid</strong><small>Squares for diagrams</small></button>
+      <button class="page-type-option template-ruled" data-template="ruled"><span></span><strong>Notebook</strong><small>Ruled writing paper</small></button>
+    </div>
+    <div style="display:flex;justify-content:flex-end;margin-top:18px;">
+      <button class="btn-outline" id="cancelPageTypeBtn">Cancel</button>
+    </div>
+  </div>
+</div>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
