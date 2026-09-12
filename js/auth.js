@@ -44,6 +44,7 @@ roleTabs.forEach(btn => {
     selectedRole = btn.dataset.role;
     clearMsgs();
     showRegisterForm(false);
+    updateGoogleSignIn();
     const forgotWrap = document.getElementById('forgotWrap');
     if (selectedRole === 'admin') {
       toRegisterWrap.classList.add('hidden');
@@ -61,10 +62,76 @@ function showRegisterForm(show) {
   loginForm.classList.toggle('hidden', show);
   toRegisterWrap.classList.toggle('hidden', show || selectedRole === 'admin');
   toLoginWrap.classList.toggle('hidden', !show);
+  document.getElementById('googleSignInWrap').classList.toggle('hidden', show || selectedRole === 'admin');
 }
 
 document.getElementById('toRegister').addEventListener('click', () => { clearMsgs(); showRegisterForm(true); });
 document.getElementById('toLogin').addEventListener('click', () => { clearMsgs(); showRegisterForm(false); });
+
+// ---------- GOOGLE SIGN-IN ----------
+const googleSignInBtn = document.getElementById('googleSignInBtn');
+const googleSignInLabel = document.getElementById('googleSignInLabel');
+const googleRoleNote = document.getElementById('googleRoleNote');
+
+function updateGoogleSignIn() {
+  const roleName = selectedRole === 'teacher' ? 'teacher' : 'student';
+  googleSignInLabel.innerText = `Continue with Google as ${roleName}`;
+  googleRoleNote.innerText = `Your Google account will be set up as a ${roleName} the first time you sign in.`;
+}
+
+async function finishGoogleSignIn(result) {
+  const googleUser = result.user;
+  const userKey = `google_${googleUser.uid}`;
+  const doc = await db.collection('users').doc(userKey).get();
+  let profile;
+
+  if (doc.exists) {
+    profile = doc.data();
+    if (profile.active === false) throw new Error('This account has been deactivated. Contact your admin.');
+    if (profile.role !== selectedRole) {
+      throw new Error(`This Google account is registered as a ${profile.role}. Select the ${profile.role} tab to continue.`);
+    }
+  } else {
+    profile = {
+      username: googleUser.email || googleUser.displayName || 'Google user',
+      usernameKey: userKey,
+      email: googleUser.email || '',
+      googleUid: googleUser.uid,
+      authProvider: 'google',
+      role: selectedRole,
+      name: googleUser.displayName || googleUser.email || 'Google user',
+      active: true,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
+    await db.collection('users').doc(userKey).set(profile);
+  }
+
+  saveSession({ role: profile.role, username: profile.username, usernameKey: userKey, name: profile.name, authProvider: 'google' });
+  window.location.href = profile.role === 'teacher' ? 'teacher.html' : 'student.html';
+}
+
+googleSignInBtn.addEventListener('click', async () => {
+  if (selectedRole === 'admin') return;
+  clearMsgs();
+  googleSignInBtn.disabled = true;
+  googleSignInLabel.innerText = 'Connecting to Google...';
+  try {
+    const provider = new firebase.auth.GoogleAuthProvider();
+    provider.setCustomParameters({ prompt: 'select_account' });
+    const result = await firebase.auth().signInWithPopup(provider);
+    await finishGoogleSignIn(result);
+  } catch (err) {
+    console.error(err);
+    const message = err.code === 'auth/popup-closed-by-user'
+      ? 'Google sign-in was cancelled.'
+      : err.message || 'Could not sign in with Google. Please try again.';
+    setError(message);
+  } finally {
+    googleSignInBtn.disabled = false;
+    updateGoogleSignIn();
+  }
+});
+updateGoogleSignIn();
 
 // ---------- LOGIN ----------
 loginForm.addEventListener('submit', async (e) => {
