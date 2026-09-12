@@ -29,6 +29,7 @@ let currentColor = '#1E2A28';
 let currentTool = 'pen'; // 'pen' | 'highlighter' | 'eraser' | 'text'
 let drawing = false;
 let currentStroke = null;
+let activePointerId = null;
 let redoStack = []; // per-notebook-load redo stack of page snapshots, keyed by page index
 let dragState = null;
 
@@ -379,11 +380,19 @@ function canvasPointFromEvent(e) {
   const rect = canvas.getBoundingClientRect();
   const scaleX = canvas.width / rect.width;
   const scaleY = canvas.height / rect.height;
-  return { x: (e.clientX - rect.left) * scaleX, y: (e.clientY - rect.top) * scaleY };
+  return {
+    x: (e.clientX - rect.left) * scaleX,
+    y: (e.clientY - rect.top) * scaleY,
+    // Pen pressure is available on iPad Pencil, Android styluses, and Windows pens.
+    // A neutral value keeps mouse and ordinary touch strokes consistent.
+    pressure: e.pointerType === 'pen' && e.pressure > 0 ? e.pressure : 0.5
+  };
 }
 
 canvas.addEventListener('pointerdown', (e) => {
   if (!canEdit) return;
+  // Ignore a second finger while writing. This prevents most accidental palm marks.
+  if (drawing || (e.pointerType === 'touch' && activePointerId !== null)) return;
   if (currentTool === 'text') {
     const rect = nbPage.getBoundingClientRect();
     const xPct = ((e.clientX - rect.left) / rect.width) * 100;
@@ -400,33 +409,36 @@ canvas.addEventListener('pointerdown', (e) => {
     return;
   }
   drawing = true;
+  activePointerId = e.pointerId;
   pushHistory();
   const p = canvasPointFromEvent(e);
   const settings = TOOL_SETTINGS[currentTool] || TOOL_SETTINGS.pen;
-  currentStroke = { color: currentTool === 'eraser' ? '#000000' : currentColor, width: settings.width, tool: currentTool, points: [p] };
+  const pressureWidth = currentTool === 'pen' ? settings.width * (0.55 + p.pressure * 0.9) : settings.width;
+  currentStroke = { color: currentTool === 'eraser' ? '#000000' : currentColor, width: pressureWidth, tool: currentTool, points: [p] };
   canvas.setPointerCapture(e.pointerId);
 });
 canvas.addEventListener('pointermove', (e) => {
-  if (!drawing || !currentStroke) return;
-  const p = canvasPointFromEvent(e);
-  currentStroke.points.push(p);
-  drawStroke({ ...currentStroke, points: currentStroke.points.slice(-2).length > 1 ? currentStroke.points.slice(-2) : currentStroke.points });
+  if (!drawing || !currentStroke || e.pointerId !== activePointerId) return;
+  // Coalesced events make fast stylus writing smoother where the browser supports them.
+  const events = e.getCoalescedEvents ? e.getCoalescedEvents() : [e];
+  events.forEach(move => {
+    const p = canvasPointFromEvent(move);
+    currentStroke.points.push(p);
+    drawStroke({ ...currentStroke, points: currentStroke.points.slice(-2) });
+  });
 });
-canvas.addEventListener('pointerup', () => {
-  if (!drawing || !currentStroke) return;
+function finishStroke(e, save = true) {
+  if (!drawing || !currentStroke || (e && e.pointerId !== activePointerId)) return;
   drawing = false;
   if (currentStroke.points.length > 1) currentPage().strokes.push(currentStroke);
   currentStroke = null;
+  activePointerId = null;
   renderPage(true);
-  saveNotebook();
-});
-canvas.addEventListener('pointerleave', () => {
-  if (drawing && currentStroke && currentStroke.points.length > 1) {
-    currentPage().strokes.push(currentStroke);
-  }
-  drawing = false;
-  currentStroke = null;
-});
+  if (save) saveNotebook();
+}
+canvas.addEventListener('pointerup', finishStroke);
+canvas.addEventListener('pointercancel', e => finishStroke(e));
+canvas.addEventListener('lostpointercapture', e => finishStroke(e));
 
 // ---------- Toolbar ----------
 document.querySelectorAll('.color-dot').forEach(dot => {
