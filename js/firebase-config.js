@@ -9,3 +9,9 @@ const firebaseConfig = {
 
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
+
+// Keep recent work available when a device temporarily loses its connection.
+// Firestore falls back safely when a browser blocks IndexedDB (for example, private mode).
+db.enablePersistence({ synchronizeTabs: true }).catch(err => {
+  console.warn('Offline cache unavailable:', err.code);
+});
