@@ -64,6 +64,14 @@
         <button type="submit" class="btn-primary" style="width:100%" id="loginBtn">Log in</button>
       </form>
 
+      <div class="google-sign-in" id="googleSignInWrap">
+        <div class="auth-divider"><span>or</span></div>
+        <button type="button" class="btn-google" id="googleSignInBtn">
+          <span class="google-g" aria-hidden="true">G</span><span id="googleSignInLabel">Continue with Google</span>
+        </button>
+        <p class="google-role-note" id="googleRoleNote">You will continue as a student.</p>
+      </div>
+
       <div class="form-switch" id="toRegisterWrap">
         Don't have an account? <a id="toRegister">Create one</a>
       </div>
@@ -162,6 +170,7 @@
 </div>
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script src="js/firebase-config.js"></script>
 <script src="js/common.js"></script>
