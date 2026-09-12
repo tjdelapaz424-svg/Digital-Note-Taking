@@ -27,6 +27,8 @@ let classData = null; // { dueDate, ... }
 let currentPageIndex = 0;
 let currentColor = '#1E2A28';
 let currentTool = 'pen'; // 'pen' | 'highlighter' | 'eraser' | 'text'
+let brushSize = 3;
+let penOnly = localStorage.getItem('nb_pen_only') === 'true';
 let drawing = false;
 let currentStroke = null;
 let activePointerId = null;
@@ -38,6 +40,21 @@ const TOOL_SETTINGS = {
   highlighter: { width: 18, alpha: 0.35, composite: 'source-over' },
   eraser: { width: 26, alpha: 1, composite: 'destination-out' }
 };
+
+function setConnectionStatus() {
+  if (!canEdit || !notebookData) return;
+  if (!navigator.onLine) nbStatus.innerText = 'Saved on device — waiting to sync';
+  else if (!notebookData.submitted) nbStatus.innerText = 'In progress';
+}
+
+window.addEventListener('offline', () => {
+  setConnectionStatus();
+  showToast('You are offline. Changes are saved on this device and will sync when reconnected.');
+});
+window.addEventListener('online', () => {
+  setConnectionStatus();
+  showToast('Back online — syncing your notebook.');
+});
 
 function blankPage() {
   return { id: 'p' + Date.now() + Math.random().toString(36).slice(2, 6), date: todayLabel(), strokes: [], texts: [] };
@@ -110,6 +127,7 @@ function renderEmptyView() {
 
 function renderStatus() {
   nbStatus.innerText = notebookData.submitted ? 'Submitted ✓' : (canEdit ? 'In progress' : 'Not yet submitted');
+  setConnectionStatus();
 }
 
 function currentPage() {
@@ -391,6 +409,10 @@ function canvasPointFromEvent(e) {
 
 canvas.addEventListener('pointerdown', (e) => {
   if (!canEdit) return;
+  if (penOnly && e.pointerType !== 'pen' && currentTool !== 'text') {
+    showToast('Pen-only mode is on. Use a stylus, or turn off Pen only.');
+    return;
+  }
   // Ignore a second finger while writing. This prevents most accidental palm marks.
   if (drawing || (e.pointerType === 'touch' && activePointerId !== null)) return;
   if (currentTool === 'text') {
@@ -412,8 +434,8 @@ canvas.addEventListener('pointerdown', (e) => {
   activePointerId = e.pointerId;
   pushHistory();
   const p = canvasPointFromEvent(e);
-  const settings = TOOL_SETTINGS[currentTool] || TOOL_SETTINGS.pen;
-  const pressureWidth = currentTool === 'pen' ? settings.width * (0.55 + p.pressure * 0.9) : settings.width;
+  const baseWidth = currentTool === 'pen' ? brushSize : (currentTool === 'highlighter' ? brushSize * 6 : brushSize * 7);
+  const pressureWidth = currentTool === 'pen' ? baseWidth * (0.55 + p.pressure * 0.9) : baseWidth;
   currentStroke = { color: currentTool === 'eraser' ? '#000000' : currentColor, width: pressureWidth, tool: currentTool, points: [p] };
   canvas.setPointerCapture(e.pointerId);
 });
@@ -460,6 +482,28 @@ document.getElementById('penToolBtn').addEventListener('click', () => setTool('p
 document.getElementById('highlighterToolBtn').addEventListener('click', () => setTool('highlighter'));
 document.getElementById('eraserToolBtn').addEventListener('click', () => setTool('eraser'));
 document.getElementById('textToolBtn').addEventListener('click', () => setTool('text'));
+
+const brushSizeInput = document.getElementById('brushSize');
+const brushSizeValue = document.getElementById('brushSizeValue');
+brushSizeInput.addEventListener('input', () => {
+  brushSize = Number(brushSizeInput.value);
+  brushSizeValue.value = brushSize;
+  brushSizeValue.innerText = brushSize;
+});
+
+const penOnlyBtn = document.getElementById('penOnlyBtn');
+function renderPenOnly() {
+  penOnlyBtn.classList.toggle('active', penOnly);
+  penOnlyBtn.setAttribute('aria-pressed', String(penOnly));
+  penOnlyBtn.innerText = penOnly ? '✒️ Pen only: on' : '✒️ Pen only';
+}
+penOnlyBtn.addEventListener('click', () => {
+  penOnly = !penOnly;
+  localStorage.setItem('nb_pen_only', String(penOnly));
+  renderPenOnly();
+  showToast(penOnly ? 'Pen-only mode is on.' : 'Pen-only mode is off.');
+});
+renderPenOnly();
 
 document.getElementById('undoBtn').addEventListener('click', undo);
 document.getElementById('redoBtn').addEventListener('click', redo);
@@ -508,7 +552,7 @@ document.getElementById('submitBtn').addEventListener('click', async () => {
 });
 
 // ---------- Persistence ----------
-async function saveNotebook(withTimestamp) {
+function saveNotebook(withTimestamp) {
   const cleanPages = notebookData.pages.map(p => ({
     id: p.id, date: p.date, strokes: p.strokes, texts: p.texts.map(t => ({ id: t.id, x: t.x, y: t.y, text: t.text, color: t.color }))
   }));
@@ -519,12 +563,13 @@ async function saveNotebook(withTimestamp) {
     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
   };
   if (withTimestamp) payload.submittedAt = firebase.firestore.FieldValue.serverTimestamp();
-  try {
-    await db.collection('notebooks').doc(notebookId).set(payload, { merge: true });
-  } catch (err) {
-    console.error('save failed', err);
-    showToast('Could not save — check your connection.', true);
-  }
+  if (!navigator.onLine) setConnectionStatus();
+  db.collection('notebooks').doc(notebookId).set(payload, { merge: true })
+    .then(setConnectionStatus)
+    .catch(err => {
+      console.error('save failed', err);
+      showToast('Could not save — changes remain on this device.', true);
+    });
 }
 
 init();
