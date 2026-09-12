@@ -32,6 +32,10 @@
     <button class="tool-btn" id="highlighterToolBtn">🖍 Highlighter</button>
     <button class="tool-btn" id="eraserToolBtn">🧽 Eraser</button>
     <button class="tool-btn" id="textToolBtn">🔤 Add text</button>
+    <label class="brush-control" for="brushSize" title="Brush size">
+      <span>Size</span><input id="brushSize" type="range" min="1" max="12" value="3" aria-label="Brush size"><output id="brushSizeValue">3</output>
+    </label>
+    <button class="tool-btn" id="penOnlyBtn" aria-pressed="false" title="When enabled, only a stylus can write">✒️ Pen only</button>
     <div class="divider"></div>
     <button class="tool-btn" id="undoBtn">↶ Undo</button>
     <button class="tool-btn" id="redoBtn">↷ Redo</button>
