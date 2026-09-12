@@ -354,6 +354,9 @@ tr:last-child td{border-bottom:none;}
   background:#33463B;color:var(--chalk);padding:8px 12px;font-size:13px;border-radius:8px;
 }
 .tool-btn.active{background:var(--yellow);color:var(--green-dark);}
+.brush-control{display:flex;align-items:center;gap:6px;margin:0;color:var(--chalk);white-space:nowrap;font-size:12px;}
+.brush-control input{width:78px;padding:0;accent-color:var(--yellow);}
+.brush-control output{width:16px;text-align:center;font-variant-numeric:tabular-nums;}
 
 .feedback-banner{
   background:#F1E9F8;border-bottom:1.5px solid var(--line);color:var(--green-dark);
@@ -466,6 +469,7 @@ tr:last-child td{border-bottom:none;}
   .nb-topbar #nbStatus,.nb-topbar #dueFlag{display:none !important;}
   .nb-toolbar{flex-wrap:nowrap;overflow-x:auto;overscroll-behavior-x:contain;padding:9px 10px;gap:7px;-webkit-overflow-scrolling:touch;}
   .nb-toolbar .tool-btn,.nb-toolbar .btn-primary{white-space:nowrap;min-height:40px;}
+  .brush-control{flex-shrink:0;}
   .nb-toolbar .divider{flex-shrink:0;}
   .color-dot{flex:0 0 28px;width:28px;height:28px;}
   .nb-thumbs{display:none;}
@@ -474,6 +478,16 @@ tr:last-child td{border-bottom:none;}
   .nb-bottombar{padding:8px;gap:8px;padding-bottom:max(8px, env(safe-area-inset-bottom));}
   .nb-bottombar .tool-btn{min-height:40px;}
   .credit-footer{display:none;}
+}
+
+/* Landscape tablets keep the complete writing page visible above the page controls. */
+@media (min-width:761px) and (max-width:1180px) and (orientation:landscape){
+  .nb-topbar{padding:7px 14px;}
+  .nb-toolbar{padding:7px 14px;flex-wrap:nowrap;overflow-x:auto;}
+  .nb-toolbar .tool-btn,.nb-toolbar .btn-primary{white-space:nowrap;}
+  .nb-thumbs{width:96px;padding:10px 6px;}
+  .nb-canvas-wrap{padding:12px;}
+  .nb-page{width:min(850px, calc((100dvh - 160px) * .773));}
 }
 
 @media (max-width:480px){
