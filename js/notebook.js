@@ -56,8 +56,8 @@ window.addEventListener('online', () => {
   showToast('Back online — syncing your notebook.');
 });
 
-function blankPage() {
-  return { id: 'p' + Date.now() + Math.random().toString(36).slice(2, 6), date: todayLabel(), strokes: [], texts: [] };
+function blankPage(template = 'ruled') {
+  return { id: 'p' + Date.now() + Math.random().toString(36).slice(2, 6), date: todayLabel(), template, strokes: [], texts: [] };
 }
 
 async function init() {
@@ -167,16 +167,19 @@ function redo() {
   saveNotebook();
 }
 
-function drawRuledBackground() {
-  ctx.fillStyle = '#FFFFFF';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  ctx.strokeStyle = '#DCE7F0';
-  ctx.lineWidth = 1;
-  for (let y = 60; y < canvas.height; y += 40) {
-    ctx.beginPath();
-    ctx.moveTo(0, y + 0.5);
-    ctx.lineTo(canvas.width, y + 0.5);
-    ctx.stroke();
+function drawPaperBackground(targetCtx, width, height, template = 'ruled') {
+  targetCtx.fillStyle = '#FFFFFF';
+  targetCtx.fillRect(0, 0, width, height);
+  targetCtx.strokeStyle = '#DCE7F0';
+  targetCtx.lineWidth = 1;
+  if (template === 'grid') {
+    for (let x = 0; x < width; x += 32) { targetCtx.beginPath(); targetCtx.moveTo(x + .5, 0); targetCtx.lineTo(x + .5, height); targetCtx.stroke(); }
+    for (let y = 0; y < height; y += 32) { targetCtx.beginPath(); targetCtx.moveTo(0, y + .5); targetCtx.lineTo(width, y + .5); targetCtx.stroke(); }
+  } else if (template === 'ruled') {
+    for (let y = 60; y < height; y += 40) { targetCtx.beginPath(); targetCtx.moveTo(0, y + .5); targetCtx.lineTo(width, y + .5); targetCtx.stroke(); }
+    targetCtx.strokeStyle = '#E9B9B9';
+    targetCtx.lineWidth = 2;
+    targetCtx.beginPath(); targetCtx.moveTo(70, 0); targetCtx.lineTo(70, height); targetCtx.stroke();
   }
 }
 
@@ -198,7 +201,8 @@ function drawStroke(stroke) {
 }
 
 function redrawCanvas() {
-  drawRuledBackground();
+  // The paper lives behind the transparent ink canvas, so the eraser can never remove it.
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
   const page = currentPage();
   if (!page) return;
   page.strokes.forEach(drawStroke);
@@ -208,6 +212,9 @@ function renderPage(keepScroll) {
   const page = currentPage();
   if (!page) return;
   redrawCanvas();
+  const template = page.template || 'ruled';
+  nbPage.classList.remove('template-blank', 'template-grid', 'template-ruled');
+  nbPage.classList.add(`template-${template}`);
   dateStamp.innerText = page.date;
 
   // clear existing text boxes
@@ -223,22 +230,29 @@ function renderPage(keepScroll) {
 
 // ---------- Page thumbnails ----------
 function paintStrokesToContext(targetCtx, strokes, scale) {
+  // Draw ink on a transparent layer first. Eraser strokes then erase only ink,
+  // never the paper pattern already painted onto targetCtx.
+  const inkCanvas = document.createElement('canvas');
+  inkCanvas.width = targetCtx.canvas.width;
+  inkCanvas.height = targetCtx.canvas.height;
+  const inkCtx = inkCanvas.getContext('2d');
   strokes.forEach(stroke => {
     if (!stroke.points || stroke.points.length < 1) return;
     const settings = TOOL_SETTINGS[stroke.tool] || TOOL_SETTINGS.pen;
-    targetCtx.save();
-    targetCtx.globalCompositeOperation = settings.composite;
-    targetCtx.globalAlpha = settings.alpha;
-    targetCtx.strokeStyle = stroke.color;
-    targetCtx.lineWidth = Math.max(1, stroke.width * scale);
-    targetCtx.lineCap = 'round';
-    targetCtx.lineJoin = 'round';
-    targetCtx.beginPath();
-    targetCtx.moveTo(stroke.points[0].x * scale, stroke.points[0].y * scale);
-    for (let i = 1; i < stroke.points.length; i++) targetCtx.lineTo(stroke.points[i].x * scale, stroke.points[i].y * scale);
-    targetCtx.stroke();
-    targetCtx.restore();
+    inkCtx.save();
+    inkCtx.globalCompositeOperation = settings.composite;
+    inkCtx.globalAlpha = settings.alpha;
+    inkCtx.strokeStyle = stroke.color;
+    inkCtx.lineWidth = Math.max(1, stroke.width * scale);
+    inkCtx.lineCap = 'round';
+    inkCtx.lineJoin = 'round';
+    inkCtx.beginPath();
+    inkCtx.moveTo(stroke.points[0].x * scale, stroke.points[0].y * scale);
+    for (let i = 1; i < stroke.points.length; i++) inkCtx.lineTo(stroke.points[i].x * scale, stroke.points[i].y * scale);
+    inkCtx.stroke();
+    inkCtx.restore();
   });
+  targetCtx.drawImage(inkCanvas, 0, 0);
 }
 
 function renderThumbs() {
@@ -252,8 +266,10 @@ function renderThumbs() {
     const c = document.createElement('canvas');
     c.width = thumbW; c.height = thumbH;
     const tctx = c.getContext('2d');
-    tctx.fillStyle = '#fff';
-    tctx.fillRect(0, 0, thumbW, thumbH);
+    tctx.save();
+    tctx.scale(scale, scale);
+    drawPaperBackground(tctx, canvas.width, canvas.height, page.template || 'ruled');
+    tctx.restore();
     paintStrokesToContext(tctx, page.strokes, scale);
     thumbWrap.appendChild(c);
     const label = document.createElement('div');
@@ -278,16 +294,7 @@ async function exportPdf() {
       const off = document.createElement('canvas');
       off.width = canvas.width; off.height = canvas.height;
       const octx = off.getContext('2d');
-      octx.fillStyle = '#FFFFFF';
-      octx.fillRect(0, 0, off.width, off.height);
-      octx.strokeStyle = '#DCE7F0';
-      octx.lineWidth = 1;
-      for (let y = 60; y < off.height; y += 40) {
-        octx.beginPath(); octx.moveTo(0, y + 0.5); octx.lineTo(off.width, y + 0.5); octx.stroke();
-      }
-      octx.strokeStyle = '#E9B9B9';
-      octx.lineWidth = 2;
-      octx.beginPath(); octx.moveTo(70, 0); octx.lineTo(70, off.height); octx.stroke();
+      drawPaperBackground(octx, off.width, off.height, page.template || 'ruled');
 
       paintStrokesToContext(octx, page.strokes, 1);
 
@@ -518,12 +525,16 @@ document.getElementById('clearBtn').addEventListener('click', () => {
   saveNotebook();
 });
 
-document.getElementById('addPageBtn').addEventListener('click', () => {
-  notebookData.pages.push(blankPage());
+const pageTypeModal = document.getElementById('pageTypeModal');
+document.getElementById('addPageBtn').addEventListener('click', () => pageTypeModal.classList.remove('hidden'));
+document.getElementById('cancelPageTypeBtn').addEventListener('click', () => pageTypeModal.classList.add('hidden'));
+document.querySelectorAll('.page-type-option').forEach(option => option.addEventListener('click', () => {
+  notebookData.pages.push(blankPage(option.dataset.template));
   currentPageIndex = notebookData.pages.length - 1;
+  pageTypeModal.classList.add('hidden');
   renderPage();
   saveNotebook();
-});
+}));
 
 document.getElementById('removePageBtn').addEventListener('click', () => {
   if (notebookData.pages.length <= 1) { showToast('You need at least one page.', true); return; }
@@ -554,7 +565,7 @@ document.getElementById('submitBtn').addEventListener('click', async () => {
 // ---------- Persistence ----------
 function saveNotebook(withTimestamp) {
   const cleanPages = notebookData.pages.map(p => ({
-    id: p.id, date: p.date, strokes: p.strokes, texts: p.texts.map(t => ({ id: t.id, x: t.x, y: t.y, text: t.text, color: t.color }))
+    id: p.id, date: p.date, template: p.template || 'ruled', strokes: p.strokes, texts: p.texts.map(t => ({ id: t.id, x: t.x, y: t.y, text: t.text, color: t.color }))
   }));
   const payload = {
     classCode, studentKey,
