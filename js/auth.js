@@ -28,6 +28,15 @@ function clearMsgs() {
   okBox.classList.add('hidden');
 }
 
+// Populate the security question dropdown on the register form
+const regSecQuestionSel = document.getElementById('regSecQuestion');
+SECURITY_QUESTIONS.forEach(q => {
+  const opt = document.createElement('option');
+  opt.value = q;
+  opt.innerText = q;
+  regSecQuestionSel.appendChild(opt);
+});
+
 roleTabs.forEach(btn => {
   btn.addEventListener('click', () => {
     roleTabs.forEach(b => b.classList.remove('active'));
@@ -35,10 +44,13 @@ roleTabs.forEach(btn => {
     selectedRole = btn.dataset.role;
     clearMsgs();
     showRegisterForm(false);
+    const forgotWrap = document.getElementById('forgotWrap');
     if (selectedRole === 'admin') {
       toRegisterWrap.classList.add('hidden');
+      forgotWrap.classList.add('hidden');
     } else {
       toRegisterWrap.classList.remove('hidden');
+      forgotWrap.classList.remove('hidden');
     }
   });
 });
@@ -86,6 +98,10 @@ loginForm.addEventListener('submit', async (e) => {
       setError(`That account is registered as a ${data.role}, not a ${selectedRole}.`);
       return;
     }
+    if (data.active === false) {
+      setError('This account has been deactivated. Contact your admin.');
+      return;
+    }
     if (data.password !== typedPass) {
       setError('Incorrect password.');
       return;
@@ -111,6 +127,8 @@ registerForm.addEventListener('submit', async (e) => {
   const region = document.getElementById('regRegion').value.trim();
   const typedUser = document.getElementById('regUsername').value.trim();
   const typedPass = document.getElementById('regPassword').value;
+  const secQuestion = document.getElementById('regSecQuestion').value;
+  const secAnswer = document.getElementById('regSecAnswer').value.trim();
   const btn = document.getElementById('registerBtn');
 
   if (usernameKey(typedUser) === usernameKey(ADMIN_USER)) {
@@ -132,6 +150,9 @@ registerForm.addEventListener('submit', async (e) => {
       password: typedPass,
       role: selectedRole,
       name, age: Number(age), sex, region,
+      active: true,
+      secQuestion,
+      secAnswerKey: usernameKey(secAnswer),
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     });
     setOk('Account created! You can log in now.');
@@ -143,6 +164,82 @@ registerForm.addEventListener('submit', async (e) => {
   } finally {
     btn.disabled = false;
     btn.innerText = 'Create account';
+  }
+});
+
+// ---------- FORGOT PASSWORD ----------
+const forgotModal = document.getElementById('forgotModal');
+const forgotStep1 = document.getElementById('forgotStep1');
+const forgotStep2 = document.getElementById('forgotStep2');
+const forgotError = document.getElementById('forgotError');
+const forgotOk = document.getElementById('forgotOk');
+let forgotUserKey = null;
+
+function forgotSetError(msg) {
+  forgotError.innerText = msg;
+  forgotError.classList.remove('hidden');
+  forgotOk.classList.add('hidden');
+}
+function forgotReset() {
+  forgotUserKey = null;
+  document.getElementById('forgotUsername').value = '';
+  document.getElementById('forgotAnswer').value = '';
+  document.getElementById('forgotNewPassword').value = '';
+  forgotError.classList.add('hidden');
+  forgotOk.classList.add('hidden');
+  forgotStep1.classList.remove('hidden');
+  forgotStep2.classList.add('hidden');
+}
+
+document.getElementById('toForgot').addEventListener('click', () => {
+  forgotReset();
+  forgotModal.classList.remove('hidden');
+});
+document.getElementById('forgotCancelBtn1').addEventListener('click', () => forgotModal.classList.add('hidden'));
+document.getElementById('forgotCancelBtn2').addEventListener('click', () => forgotModal.classList.add('hidden'));
+
+document.getElementById('forgotNextBtn').addEventListener('click', async () => {
+  const typedUser = document.getElementById('forgotUsername').value.trim();
+  if (!typedUser) { forgotSetError('Enter your username.'); return; }
+  const key = usernameKey(typedUser);
+  try {
+    const doc = await db.collection('users').doc(key).get();
+    if (!doc.exists) { forgotSetError('No account found with that username.'); return; }
+    const data = doc.data();
+    if (!data.secQuestion || !data.secAnswerKey) {
+      forgotSetError('This account has no security question on file. Ask your admin for help.');
+      return;
+    }
+    forgotUserKey = key;
+    document.getElementById('forgotQuestionLabel').innerText = data.secQuestion;
+    forgotStep1.classList.add('hidden');
+    forgotStep2.classList.remove('hidden');
+    forgotError.classList.add('hidden');
+  } catch (err) {
+    console.error(err);
+    forgotSetError('Could not reach the server. Check your internet connection.');
+  }
+});
+
+document.getElementById('forgotSubmitBtn').addEventListener('click', async () => {
+  const answer = document.getElementById('forgotAnswer').value.trim();
+  const newPassword = document.getElementById('forgotNewPassword').value;
+  if (!answer || !newPassword) { forgotSetError('Fill in both fields.'); return; }
+  try {
+    const doc = await db.collection('users').doc(forgotUserKey).get();
+    const data = doc.data();
+    if (usernameKey(answer) !== data.secAnswerKey) {
+      forgotSetError('That answer doesn\'t match.');
+      return;
+    }
+    await db.collection('users').doc(forgotUserKey).update({ password: newPassword });
+    forgotError.classList.add('hidden');
+    forgotOk.innerText = 'Password reset! You can log in now.';
+    forgotOk.classList.remove('hidden');
+    setTimeout(() => forgotModal.classList.add('hidden'), 1800);
+  } catch (err) {
+    console.error(err);
+    forgotSetError('Could not reach the server. Check your internet connection.');
   }
 });
 

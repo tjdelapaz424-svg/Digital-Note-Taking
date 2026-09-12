@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Admin Dashboard | Notebook</title>
+<title>History | Notebook</title>
 <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
@@ -11,38 +11,30 @@
 <div class="app-shell">
   <div class="sidebar">
     <div class="brand-icon"><svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"><rect x="8" y="6" width="40" height="52" rx="7" fill="#F2A6C4"/><rect x="8" y="6" width="8" height="52" rx="4" fill="#E37FA6"/><line x1="24" y1="20" x2="42" y2="20" stroke="#fff" stroke-width="3" stroke-linecap="round"/><line x1="24" y1="29" x2="42" y2="29" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".85"/><line x1="24" y1="38" x2="36" y2="38" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".7"/><rect x="38" y="2" width="9" height="30" rx="4.5" transform="rotate(40 42.5 17)" fill="#33234A" stroke="#fff" stroke-width="1.2"/></svg><span class="brand" style="font-size:20px;">Notebook</span></div>
-    <div class="who">Admin</div>
+    <div class="who" id="whoLabel">Student</div>
     <nav>
-      <button class="navlink active" id="tabTeachers"><span class="label">Teachers</span></button>
-      <button class="navlink" id="tabStudents"><span class="label">Students</span></button>
+      <a href="student.html"><span class="label">My Classes</span></a>
+      <a class="active"><span class="label">History</span></a>
     </nav>
     <button class="navlink logout btn-outline" id="logoutBtn" style="color:#fff;border-color:rgba(255,255,255,.4);">Log out</button>
   </div>
 
   <div class="main">
-    <div class="page-title" id="panelTitle">Teacher accounts</div>
-    <div class="page-sub">All registered accounts, straight from the database.</div>
-
-    <div class="stat-row">
-      <div class="stat-card"><div class="stat-num" id="statTotalAccounts">0</div><div class="stat-label">Total accounts</div></div>
-      <div class="stat-card"><div class="stat-num" id="statTotalClasses">0</div><div class="stat-label">Classes</div></div>
-      <div class="stat-card"><div class="stat-num" id="statTotalSubmitted">0</div><div class="stat-label">Notebooks submitted</div></div>
-    </div>
-
-    <div class="search-row">
-      <input type="text" id="searchInput" placeholder="Search by name or region..." />
+    <div class="topbar-actions">
+      <div>
+        <div class="page-title">Submission history</div>
+        <div class="page-sub">Every notebook you've submitted, across all your classes.</div>
+      </div>
     </div>
 
     <div class="card">
       <table>
         <thead>
-          <tr>
-            <th>Name</th><th>Username</th><th>Password</th><th>Age</th><th>Sex</th><th>Region</th><th>Status</th><th></th>
-          </tr>
+          <tr><th>Class</th><th>Submitted</th><th>Status</th><th>Feedback</th><th></th></tr>
         </thead>
-        <tbody id="accountsBody"></tbody>
+        <tbody id="historyBody"></tbody>
       </table>
-      <div id="accountsEmpty" class="empty-state hidden">No accounts yet.</div>
+      <div id="historyEmpty" class="empty-state hidden">You haven't submitted any notebooks yet.</div>
     </div>
   </div>
 </div>
@@ -51,7 +43,7 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script src="js/firebase-config.js"></script>
 <script src="js/common.js"></script>
-<script src="js/admin.js"></script>
+<script src="js/history.js"></script>
 <div class="credit-footer">Created by TJ Dela Paz</div>
 </body>
 </html>

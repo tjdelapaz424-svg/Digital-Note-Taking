@@ -67,6 +67,9 @@
       <div class="form-switch" id="toRegisterWrap">
         Don't have an account? <a id="toRegister">Create one</a>
       </div>
+      <div class="form-switch" id="forgotWrap">
+        <a id="toForgot">Forgot password?</a>
+      </div>
 
       <!-- REGISTER FORM (student/teacher only) -->
       <form id="registerForm" class="hidden">
@@ -101,6 +104,14 @@
           <label>Password</label>
           <input type="password" id="regPassword" required />
         </div>
+        <div class="field">
+          <label>Security question <span style="font-weight:400;color:#8E7BA3;">(used to reset your password)</span></label>
+          <select id="regSecQuestion" required></select>
+        </div>
+        <div class="field">
+          <label>Answer</label>
+          <input type="text" id="regSecAnswer" required />
+        </div>
         <button type="submit" class="btn-primary" style="width:100%" id="registerBtn">Create account</button>
       </form>
 
@@ -113,6 +124,42 @@
   </div>
 </div>
 <div class="credit-footer">Created by TJ Dela Paz</div>
+
+<!-- FORGOT PASSWORD MODAL -->
+<div class="modal-backdrop hidden" id="forgotModal">
+  <div class="modal">
+    <h3>Reset your password</h3>
+    <p style="font-size:13px;color:#7A8A81;margin-top:0;">Answer your security question to set a new password.</p>
+    <div id="forgotError" class="error-msg hidden"></div>
+    <div id="forgotOk" class="ok-msg hidden"></div>
+
+    <div id="forgotStep1">
+      <div class="field">
+        <label>Username</label>
+        <input type="text" id="forgotUsername" />
+      </div>
+      <div style="display:flex;gap:10px;justify-content:flex-end;">
+        <button class="btn-outline" id="forgotCancelBtn1">Cancel</button>
+        <button class="btn-primary" id="forgotNextBtn">Next</button>
+      </div>
+    </div>
+
+    <div id="forgotStep2" class="hidden">
+      <div class="field">
+        <label id="forgotQuestionLabel">Security question</label>
+        <input type="text" id="forgotAnswer" placeholder="Your answer" />
+      </div>
+      <div class="field">
+        <label>New password</label>
+        <input type="password" id="forgotNewPassword" />
+      </div>
+      <div style="display:flex;gap:10px;justify-content:flex-end;">
+        <button class="btn-outline" id="forgotCancelBtn2">Cancel</button>
+        <button class="btn-primary" id="forgotSubmitBtn">Reset password</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>

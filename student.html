@@ -13,7 +13,8 @@
     <div class="brand-icon"><svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"><rect x="8" y="6" width="40" height="52" rx="7" fill="#F2A6C4"/><rect x="8" y="6" width="8" height="52" rx="4" fill="#E37FA6"/><line x1="24" y1="20" x2="42" y2="20" stroke="#fff" stroke-width="3" stroke-linecap="round"/><line x1="24" y1="29" x2="42" y2="29" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".85"/><line x1="24" y1="38" x2="36" y2="38" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".7"/><rect x="38" y="2" width="9" height="30" rx="4.5" transform="rotate(40 42.5 17)" fill="#33234A" stroke="#fff" stroke-width="1.2"/></svg><span class="brand" style="font-size:20px;">Notebook</span></div>
     <div class="who" id="whoLabel">Student</div>
     <nav>
-      <a class="active"><span class="label">My Classes</span></a>
+      <a class="active" id="navClasses"><span class="label">My Classes</span></a>
+      <a id="navHistory" href="history.html"><span class="label">History</span></a>
     </nav>
     <button class="navlink logout btn-outline" id="logoutBtn" style="color:#fff;border-color:rgba(255,255,255,.4);">Log out</button>
   </div>
@@ -24,8 +25,14 @@
         <div class="page-title">Your classes</div>
         <div class="page-sub">Join a class with a code from your teacher.</div>
       </div>
-      <button class="btn-primary" id="joinClassBtn">+ Add class using code</button>
+      <div style="display:flex;align-items:center;gap:14px;">
+        <button class="bell-btn" id="bellBtn" title="Notifications">
+          🔔<span class="bell-badge hidden" id="bellBadge">0</span>
+        </button>
+        <button class="btn-primary" id="joinClassBtn">+ Add class using code</button>
+      </div>
     </div>
+    <div id="notifPanel" class="notif-panel hidden"></div>
 
     <div id="classGrid" class="grid-cards"></div>
     <div id="classEmpty" class="empty-state hidden">You haven't joined any classes yet.</div>

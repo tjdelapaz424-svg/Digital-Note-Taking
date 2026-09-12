@@ -14,15 +14,23 @@
       <button class="btn-outline btn-small" id="backBtn" style="color:#fff;border-color:rgba(255,255,255,.5);">← Back</button>
       <div class="title" id="nbTitle">Notebook</div>
     </div>
-    <div class="status" id="nbStatus">Loading...</div>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <span class="status" id="lateFlag" style="display:none;background:rgba(178,58,58,.85);">Late</span>
+      <span class="status" id="dueFlag" style="display:none;"></span>
+      <button class="tool-btn btn-icon" id="exportPdfBtn" title="Download as PDF">⬇ PDF</button>
+      <div class="status" id="nbStatus">Loading...</div>
+    </div>
   </div>
 
   <div class="nb-toolbar" id="editToolbar">
     <span class="color-dot active" data-color="#1E2A28" style="background:#1E2A28;"></span>
     <span class="color-dot" data-color="#B23A3A" style="background:#B23A3A;"></span>
     <span class="color-dot" data-color="#2255A4" style="background:#2255A4;"></span>
+    <span class="color-dot" data-color="#F2D53C" style="background:#F2D53C;" title="Highlighter color"></span>
     <div class="divider"></div>
     <button class="tool-btn active" id="penToolBtn">✏️ Pen</button>
+    <button class="tool-btn" id="highlighterToolBtn">🖍 Highlighter</button>
+    <button class="tool-btn" id="eraserToolBtn">🧽 Eraser</button>
     <button class="tool-btn" id="textToolBtn">🔤 Add text</button>
     <div class="divider"></div>
     <button class="tool-btn" id="undoBtn">↶ Undo</button>
@@ -35,12 +43,20 @@
     <button class="btn-primary btn-small" id="submitBtn">Submit to teacher</button>
   </div>
 
-  <div class="nb-canvas-wrap">
-    <div class="nb-page" id="nbPage">
-      <div class="margin-line"></div>
-      <canvas id="nbCanvas" width="850" height="1100"></canvas>
-      <div class="date-stamp" id="dateStamp"></div>
-      <!-- text boxes get inserted here -->
+  <div id="feedbackBanner" class="feedback-banner hidden">
+    <strong>Feedback from your teacher:</strong>
+    <div id="feedbackBannerText"></div>
+  </div>
+
+  <div class="nb-body">
+    <div class="nb-thumbs" id="nbThumbs"></div>
+    <div class="nb-canvas-wrap">
+      <div class="nb-page" id="nbPage">
+        <div class="margin-line"></div>
+        <canvas id="nbCanvas" width="850" height="1100"></canvas>
+        <div class="date-stamp" id="dateStamp"></div>
+        <!-- text boxes get inserted here -->
+      </div>
     </div>
   </div>
 
@@ -53,6 +69,7 @@
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="js/firebase-config.js"></script>
 <script src="js/common.js"></script>
 <script src="js/notebook.js"></script>

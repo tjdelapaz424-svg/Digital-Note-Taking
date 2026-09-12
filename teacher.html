@@ -27,6 +27,13 @@
       <button class="btn-primary" id="createClassBtn">+ Create class</button>
     </div>
 
+    <div class="stat-row" id="statRow">
+      <div class="stat-card"><div class="stat-num" id="statClasses">0</div><div class="stat-label">Classes</div></div>
+      <div class="stat-card"><div class="stat-num" id="statStudents">0</div><div class="stat-label">Students</div></div>
+      <div class="stat-card"><div class="stat-num" id="statPending">0</div><div class="stat-label">Pending requests</div></div>
+      <div class="stat-card"><div class="stat-num" id="statSubmitted">0</div><div class="stat-label">Notebooks submitted</div></div>
+    </div>
+
     <div id="classGrid" class="grid-cards"></div>
     <div id="classEmpty" class="empty-state hidden">No classes yet. Create your first one above.</div>
 
@@ -37,9 +44,15 @@
           <button class="btn-outline btn-small" id="closeDetailBtn">Close</button>
         </div>
 
-        <div style="margin-bottom:16px;">
-          <span class="pill" style="background:#EFEAD9;color:#5C6B63;">Join code:</span>
-          <span class="class-tile-code" id="detailCode" style="font-family:'Patrick Hand',cursive;font-size:20px;letter-spacing:2px;"></span>
+        <div style="margin-bottom:16px;display:flex;gap:18px;align-items:center;flex-wrap:wrap;">
+          <div>
+            <span class="pill" style="background:#EFEAD9;color:#5C6B63;">Join code:</span>
+            <span class="class-tile-code" id="detailCode" style="font-family:'Patrick Hand',cursive;font-size:20px;letter-spacing:2px;"></span>
+          </div>
+          <div id="detailDueWrap">
+            <span class="pill" style="background:#EFEAD9;color:#5C6B63;">Due date:</span>
+            <span id="detailDue" style="font-size:13.5px;"></span>
+          </div>
         </div>
 
         <div class="topbar-actions" style="margin-bottom:8px;">
@@ -54,11 +67,46 @@
 
         <h3 style="margin-top:22px;">Roster</h3>
         <table id="rosterTable">
-          <thead><tr><th>Name</th><th>Username</th><th>Notebook</th><th></th></tr></thead>
+          <thead><tr><th>Name</th><th>Username</th><th>Notebook</th><th>Feedback</th><th></th></tr></thead>
           <tbody id="rosterBody"></tbody>
         </table>
         <div id="rosterEmpty" class="empty-state hidden">No approved students yet.</div>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- CREATE CLASS MODAL -->
+<div class="modal-backdrop hidden" id="createClassModal">
+  <div class="modal">
+    <h3>Create a class</h3>
+    <div id="createClassError" class="error-msg hidden"></div>
+    <div class="field">
+      <label>Class name</label>
+      <input type="text" id="newClassName" placeholder="e.g. Grade 8 - Science" />
+    </div>
+    <div class="field">
+      <label>Due date <span style="font-weight:400;color:#8E7BA3;">(optional — when notebooks are due)</span></label>
+      <input type="date" id="newClassDueDate" />
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;">
+      <button class="btn-outline" id="cancelCreateClassBtn">Cancel</button>
+      <button class="btn-primary" id="confirmCreateClassBtn">Create class</button>
+    </div>
+  </div>
+</div>
+
+<!-- FEEDBACK MODAL -->
+<div class="modal-backdrop hidden" id="feedbackModal">
+  <div class="modal">
+    <h3>Feedback for <span id="feedbackStudentName"></span></h3>
+    <div class="field">
+      <label>Comment / grade</label>
+      <textarea id="feedbackText" rows="5" style="width:100%;font-family:inherit;padding:10px 12px;border:1.5px solid var(--line);border-radius:var(--radius);font-size:14px;"></textarea>
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;">
+      <button class="btn-outline" id="cancelFeedbackBtn">Cancel</button>
+      <button class="btn-primary" id="saveFeedbackBtn">Save feedback</button>
     </div>
   </div>
 </div>

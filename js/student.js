@@ -43,6 +43,7 @@ document.getElementById('submitJoinBtn').addEventListener('click', async () => {
       studentUsername: session.username,
       studentName: session.name || session.username,
       status: 'pending',
+      studentSeen: true,
       requestedAt: firebase.firestore.FieldValue.serverTimestamp()
     });
     joinModal.classList.add('hidden');
@@ -72,15 +73,31 @@ async function loadClasses() {
     const classDoc = await db.collection('classes').doc(en.classCode).get();
     const className = classDoc.exists ? classDoc.data().className : '(class removed)';
     const teacherUsername = classDoc.exists ? classDoc.data().teacherUsername : '';
+    const dueDate = classDoc.exists ? classDoc.data().dueDate : null;
+
+    let feedbackTag = '';
+    let dueHtml = '';
+    if (en.status === 'approved') {
+      const nbDoc = await db.collection('notebooks').doc(`${en.classCode}_${session.usernameKey}`).get();
+      const nb = nbDoc.exists ? nbDoc.data() : null;
+      if (nb && nb.feedback && nb.feedback.text && !nb.feedback.seenByStudent) {
+        feedbackTag = '<span class="tag" style="background:#E3D6ED;color:var(--green-dark);margin-left:6px;">New feedback</span>';
+      }
+      if (dueDate && !(nb && nb.submitted)) {
+        const cd = dueCountdown(dueDate);
+        if (cd) dueHtml = `<div style="font-size:12px;margin-top:6px;${cd.overdue ? 'color:var(--red);font-weight:700;' : cd.soon ? 'color:#8A6414;font-weight:700;' : 'color:#7A8A81;'}">${cd.label}</div>`;
+      }
+    }
 
     const tile = document.createElement('div');
     tile.className = 'class-tile';
     const tagClass = en.status === 'approved' ? 'tag-approved' : en.status === 'rejected' ? 'tag-rejected' : 'tag-pending';
     const tagLabel = en.status === 'approved' ? 'Approved' : en.status === 'rejected' ? 'Rejected' : 'Pending approval';
     tile.innerHTML = `
-      <span class="tag ${tagClass}">${tagLabel}</span>
+      <span class="tag ${tagClass}">${tagLabel}</span>${feedbackTag}
       <h3 style="margin-bottom:2px;">${escapeHtml(className)}</h3>
       <div style="font-size:12.5px;color:#7A8A81;">Teacher: ${escapeHtml(teacherUsername)}</div>
+      ${dueHtml}
     `;
     if (en.status === 'approved') {
       tile.addEventListener('click', () => {
@@ -94,4 +111,62 @@ async function loadClasses() {
   }
 }
 
+// ---------- Notifications ----------
+const bellBtn = document.getElementById('bellBtn');
+const bellBadge = document.getElementById('bellBadge');
+const notifPanel = document.getElementById('notifPanel');
+let notifItems = [];
+
+async function refreshNotifications() {
+  notifItems = [];
+  const enrollSnap = await db.collection('enrollments').where('studentKey', '==', session.usernameKey).get();
+  for (const doc of enrollSnap.docs) {
+    const en = doc.data();
+    if ((en.status === 'approved' || en.status === 'rejected') && en.studentSeen === false) {
+      notifItems.push({
+        text: en.status === 'approved' ? `You were approved to join a class.` : `Your join request was declined.`,
+        markSeen: () => db.collection('enrollments').doc(doc.id).update({ studentSeen: true })
+      });
+    }
+  }
+  const nbSnap = await db.collection('notebooks').where('studentKey', '==', session.usernameKey).get();
+  for (const doc of nbSnap.docs) {
+    const nb = doc.data();
+    if (nb.feedback && nb.feedback.text && nb.feedback.seenByStudent === false) {
+      notifItems.push({
+        text: `Your teacher left feedback on a notebook.`,
+        link: `notebook.html?class=${nb.classCode}&student=${nb.studentKey}&mode=edit`,
+        markSeen: () => db.collection('notebooks').doc(doc.id).set({ feedback: { seenByStudent: true } }, { merge: true })
+      });
+    }
+  }
+  bellBadge.innerText = notifItems.length;
+  bellBadge.classList.toggle('hidden', notifItems.length === 0);
+  renderNotifPanel();
+}
+
+function renderNotifPanel() {
+  if (notifItems.length === 0) {
+    notifPanel.innerHTML = '<div class="empty-state" style="padding:16px;">No new notifications.</div>';
+    return;
+  }
+  notifPanel.innerHTML = '';
+  notifItems.forEach((n, i) => {
+    const item = document.createElement('div');
+    item.className = 'notif-item';
+    item.innerText = n.text;
+    item.addEventListener('click', async () => {
+      await n.markSeen();
+      if (n.link) window.location.href = n.link;
+      else { notifPanel.classList.add('hidden'); refreshNotifications(); loadClasses(); }
+    });
+    notifPanel.appendChild(item);
+  });
+}
+
+bellBtn.addEventListener('click', () => {
+  notifPanel.classList.toggle('hidden');
+});
+
 loadClasses();
+refreshNotifications();

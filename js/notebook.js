@@ -23,13 +23,20 @@ const nbStatus = document.getElementById('nbStatus');
 const nbTitle = document.getElementById('nbTitle');
 
 let notebookData = null; // { pages: [...], submitted, ... }
+let classData = null; // { dueDate, ... }
 let currentPageIndex = 0;
 let currentColor = '#1E2A28';
-let currentTool = 'pen'; // 'pen' | 'text'
+let currentTool = 'pen'; // 'pen' | 'highlighter' | 'eraser' | 'text'
 let drawing = false;
 let currentStroke = null;
 let redoStack = []; // per-notebook-load redo stack of page snapshots, keyed by page index
 let dragState = null;
+
+const TOOL_SETTINGS = {
+  pen: { width: 3, alpha: 1, composite: 'source-over' },
+  highlighter: { width: 18, alpha: 0.35, composite: 'source-over' },
+  eraser: { width: 26, alpha: 1, composite: 'destination-out' }
+};
 
 function blankPage() {
   return { id: 'p' + Date.now() + Math.random().toString(36).slice(2, 6), date: todayLabel(), strokes: [], texts: [] };
@@ -37,6 +44,7 @@ function blankPage() {
 
 async function init() {
   const classDoc = await db.collection('classes').doc(classCode).get();
+  classData = classDoc.exists ? classDoc.data() : null;
   nbTitle.innerText = classDoc.exists ? classDoc.data().className + ' — Notebook' : 'Notebook';
 
   const doc = await db.collection('notebooks').doc(notebookId).get();
@@ -54,13 +62,49 @@ async function init() {
   }
   currentPageIndex = 0;
   renderStatus();
+  renderDueAndFeedback();
   renderPage();
+}
+
+function renderDueAndFeedback() {
+  const dueFlag = document.getElementById('dueFlag');
+  const lateFlag = document.getElementById('lateFlag');
+  dueFlag.style.display = 'none';
+  lateFlag.style.display = 'none';
+
+  if (classData && classData.dueDate) {
+    if (notebookData.submitted) {
+      const submittedAt = millisFromTimestamp(notebookData.submittedAt);
+      if (isSubmissionLate(classData.dueDate, submittedAt)) lateFlag.style.display = 'inline-block';
+    } else if (canEdit) {
+      const cd = dueCountdown(classData.dueDate);
+      if (cd) {
+        dueFlag.innerText = cd.label;
+        dueFlag.style.background = cd.overdue ? 'rgba(178,58,58,.85)' : 'rgba(255,255,255,.15)';
+        dueFlag.style.display = 'inline-block';
+      }
+    }
+  }
+
+  const banner = document.getElementById('feedbackBanner');
+  if (notebookData.feedback && notebookData.feedback.text) {
+    banner.classList.remove('hidden');
+    document.getElementById('feedbackBannerText').innerText = notebookData.feedback.text;
+    // Mark as seen once the owning student views it
+    if (session.role === 'student' && session.usernameKey === studentKey && notebookData.feedback.seenByStudent === false) {
+      db.collection('notebooks').doc(notebookId).set({ feedback: { seenByStudent: true } }, { merge: true });
+    }
+  } else {
+    banner.classList.add('hidden');
+  }
 }
 
 function renderEmptyView() {
   nbStatus.innerText = 'No notes yet';
   document.querySelector('.nb-canvas-wrap').innerHTML = '<div class="empty-state" style="color:#fff;">This student hasn\'t written any notes yet.</div>';
   document.querySelector('.nb-bottombar').classList.add('hidden');
+  document.getElementById('nbThumbs').classList.add('hidden');
+  document.getElementById('exportPdfBtn').classList.add('hidden');
 }
 
 function renderStatus() {
@@ -119,6 +163,10 @@ function drawRuledBackground() {
 
 function drawStroke(stroke) {
   if (stroke.points.length < 1) return;
+  const settings = TOOL_SETTINGS[stroke.tool] || TOOL_SETTINGS.pen;
+  ctx.save();
+  ctx.globalCompositeOperation = settings.composite;
+  ctx.globalAlpha = settings.alpha;
   ctx.strokeStyle = stroke.color;
   ctx.lineWidth = stroke.width;
   ctx.lineCap = 'round';
@@ -127,6 +175,7 @@ function drawStroke(stroke) {
   ctx.moveTo(stroke.points[0].x, stroke.points[0].y);
   for (let i = 1; i < stroke.points.length; i++) ctx.lineTo(stroke.points[i].x, stroke.points[i].y);
   ctx.stroke();
+  ctx.restore();
 }
 
 function redrawCanvas() {
@@ -149,7 +198,105 @@ function renderPage(keepScroll) {
   document.getElementById('pageIndicator').innerText = `Page ${currentPageIndex + 1} of ${notebookData.pages.length}`;
   document.getElementById('prevPageBtn').disabled = currentPageIndex === 0;
   document.getElementById('nextPageBtn').disabled = currentPageIndex === notebookData.pages.length - 1;
+
+  renderThumbs();
 }
+
+// ---------- Page thumbnails ----------
+function paintStrokesToContext(targetCtx, strokes, scale) {
+  strokes.forEach(stroke => {
+    if (!stroke.points || stroke.points.length < 1) return;
+    const settings = TOOL_SETTINGS[stroke.tool] || TOOL_SETTINGS.pen;
+    targetCtx.save();
+    targetCtx.globalCompositeOperation = settings.composite;
+    targetCtx.globalAlpha = settings.alpha;
+    targetCtx.strokeStyle = stroke.color;
+    targetCtx.lineWidth = Math.max(1, stroke.width * scale);
+    targetCtx.lineCap = 'round';
+    targetCtx.lineJoin = 'round';
+    targetCtx.beginPath();
+    targetCtx.moveTo(stroke.points[0].x * scale, stroke.points[0].y * scale);
+    for (let i = 1; i < stroke.points.length; i++) targetCtx.lineTo(stroke.points[i].x * scale, stroke.points[i].y * scale);
+    targetCtx.stroke();
+    targetCtx.restore();
+  });
+}
+
+function renderThumbs() {
+  const wrap = document.getElementById('nbThumbs');
+  wrap.innerHTML = '';
+  const thumbW = 90, thumbH = Math.round(90 * (canvas.height / canvas.width));
+  const scale = thumbW / canvas.width;
+  notebookData.pages.forEach((page, idx) => {
+    const thumbWrap = document.createElement('div');
+    thumbWrap.className = 'nb-thumb' + (idx === currentPageIndex ? ' active' : '');
+    const c = document.createElement('canvas');
+    c.width = thumbW; c.height = thumbH;
+    const tctx = c.getContext('2d');
+    tctx.fillStyle = '#fff';
+    tctx.fillRect(0, 0, thumbW, thumbH);
+    paintStrokesToContext(tctx, page.strokes, scale);
+    thumbWrap.appendChild(c);
+    const label = document.createElement('div');
+    label.className = 'nb-thumb-label';
+    label.innerText = idx + 1;
+    thumbWrap.appendChild(label);
+    thumbWrap.addEventListener('click', () => { currentPageIndex = idx; renderPage(); });
+    wrap.appendChild(thumbWrap);
+  });
+}
+
+// ---------- PDF export ----------
+async function exportPdf() {
+  const btn = document.getElementById('exportPdfBtn');
+  btn.disabled = true;
+  btn.innerText = 'Preparing...';
+  try {
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF({ orientation: 'portrait', unit: 'pt', format: [canvas.width, canvas.height] });
+    for (let i = 0; i < notebookData.pages.length; i++) {
+      const page = notebookData.pages[i];
+      const off = document.createElement('canvas');
+      off.width = canvas.width; off.height = canvas.height;
+      const octx = off.getContext('2d');
+      octx.fillStyle = '#FFFFFF';
+      octx.fillRect(0, 0, off.width, off.height);
+      octx.strokeStyle = '#DCE7F0';
+      octx.lineWidth = 1;
+      for (let y = 60; y < off.height; y += 40) {
+        octx.beginPath(); octx.moveTo(0, y + 0.5); octx.lineTo(off.width, y + 0.5); octx.stroke();
+      }
+      octx.strokeStyle = '#E9B9B9';
+      octx.lineWidth = 2;
+      octx.beginPath(); octx.moveTo(70, 0); octx.lineTo(70, off.height); octx.stroke();
+
+      paintStrokesToContext(octx, page.strokes, 1);
+
+      page.texts.forEach(t => {
+        octx.fillStyle = t.color || '#1E2A28';
+        octx.font = "20px 'Patrick Hand', cursive, sans-serif";
+        octx.fillText(t.text || '', (t.x / 100) * off.width, (t.y / 100) * off.height + 20);
+      });
+
+      octx.fillStyle = '#5B4570';
+      octx.font = "20px 'Patrick Hand', cursive, sans-serif";
+      const dateText = page.date || '';
+      octx.fillText(dateText, off.width - 20 - octx.measureText(dateText).width, 34);
+
+      if (i > 0) pdf.addPage([off.width, off.height], 'portrait');
+      pdf.addImage(off.toDataURL('image/png'), 'PNG', 0, 0, off.width, off.height);
+    }
+    const fname = `${(classData ? classData.className : 'notebook').replace(/[^a-z0-9]+/gi, '-')}-${studentKey}.pdf`;
+    pdf.save(fname);
+  } catch (err) {
+    console.error(err);
+    showToast('Could not export PDF.', true);
+  } finally {
+    btn.disabled = false;
+    btn.innerText = '⬇ PDF';
+  }
+}
+document.getElementById('exportPdfBtn').addEventListener('click', exportPdf);
 
 function renderTextBox(t) {
   const el = document.createElement('div');
@@ -255,7 +402,8 @@ canvas.addEventListener('pointerdown', (e) => {
   drawing = true;
   pushHistory();
   const p = canvasPointFromEvent(e);
-  currentStroke = { color: currentColor, width: 3, points: [p] };
+  const settings = TOOL_SETTINGS[currentTool] || TOOL_SETTINGS.pen;
+  currentStroke = { color: currentTool === 'eraser' ? '#000000' : currentColor, width: settings.width, tool: currentTool, points: [p] };
   canvas.setPointerCapture(e.pointerId);
 });
 canvas.addEventListener('pointermove', (e) => {
@@ -292,9 +440,13 @@ document.querySelectorAll('.color-dot').forEach(dot => {
 function setTool(tool) {
   currentTool = tool;
   document.getElementById('penToolBtn').classList.toggle('active', tool === 'pen');
+  document.getElementById('highlighterToolBtn').classList.toggle('active', tool === 'highlighter');
+  document.getElementById('eraserToolBtn').classList.toggle('active', tool === 'eraser');
   document.getElementById('textToolBtn').classList.toggle('active', tool === 'text');
 }
 document.getElementById('penToolBtn').addEventListener('click', () => setTool('pen'));
+document.getElementById('highlighterToolBtn').addEventListener('click', () => setTool('highlighter'));
+document.getElementById('eraserToolBtn').addEventListener('click', () => setTool('eraser'));
 document.getElementById('textToolBtn').addEventListener('click', () => setTool('text'));
 
 document.getElementById('undoBtn').addEventListener('click', undo);
@@ -336,8 +488,10 @@ document.getElementById('nextPageBtn').addEventListener('click', () => {
 document.getElementById('submitBtn').addEventListener('click', async () => {
   if (!confirm('Submit this notebook to your teacher?')) return;
   notebookData.submitted = true;
+  notebookData.submittedAt = { seconds: Math.floor(Date.now() / 1000) }; // optimistic local value until saved
   await saveNotebook(true);
   renderStatus();
+  renderDueAndFeedback();
   showToast('Notebook submitted to your teacher.');
 });
 

@@ -1,5 +1,33 @@
 # Notebook — school notes app
 
+## What's new in this version
+
+**Students:** highlighter and eraser tools in the notebook, page thumbnails
+down the side, a History page listing every notebook you've submitted, and
+due-date countdowns on class tiles.
+
+**Teachers:** an overview row (total students / pending / submitted) on your
+dashboard, an optional due date per class (submissions after it are flagged
+"late"), a Feedback button to leave a note on a student's notebook, and a
+Remove button to kick an approved student out of a class.
+
+**Admin:** usage stats (accounts / classes / submitted notebooks), a
+search box to filter the teacher/student tables by name or region, and
+Deactivate / Delete buttons per account.
+
+**Everywhere:** a "Forgot password?" flow on the login page (answer a
+security question you set at registration to reset your own password,
+without needing the admin), and a notification bell on the student
+dashboard that flags new approvals and new teacher feedback.
+
+Notebook PDF export uses [jsPDF](https://github.com/parallax/jsPDF), loaded
+from a CDN in `notebook.html` — no install step needed.
+
+No Firestore rules changes are required for any of this; the existing rules
+were already open enough for the new fields and the `history.html` /
+`js/history.js` page.
+
+
 Student/teacher/admin accounts, class join-codes with approval, and a stylus
 notebook (draw + movable text) that students submit to their teacher.
 
