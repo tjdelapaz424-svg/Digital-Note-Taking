@@ -9,10 +9,36 @@
 <body>
 
 <div class="auth-wrap">
+  <div class="auth-visual">
+    <div class="deco-page" style="width:220px;height:280px;top:-60px;right:-40px;transform:rotate(12deg);"></div>
+    <div class="deco-page" style="width:160px;height:200px;bottom:-50px;right:80px;transform:rotate(-8deg);"></div>
+    <svg class="visual-mark" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+      <rect x="8" y="6" width="40" height="52" rx="7" fill="#fff"/>
+      <rect x="8" y="6" width="8" height="52" rx="4" fill="#E3D6ED"/>
+      <line x1="24" y1="20" x2="42" y2="20" stroke="#6C4AB6" stroke-width="3" stroke-linecap="round"/>
+      <line x1="24" y1="29" x2="42" y2="29" stroke="#6C4AB6" stroke-width="3" stroke-linecap="round" opacity=".85"/>
+      <line x1="24" y1="38" x2="36" y2="38" stroke="#6C4AB6" stroke-width="3" stroke-linecap="round" opacity=".7"/>
+      <rect x="38" y="2" width="9" height="30" rx="4.5" transform="rotate(40 42.5 17)" fill="#F2A6C4" stroke="#fff" stroke-width="1.2"/>
+    </svg>
+    <h1>Class notes, made digital.</h1>
+    <p>Join a class with a code, write with a stylus in red, black or blue, and submit straight to your teacher — from any device.</p>
+  </div>
+
+  <div class="auth-panel">
   <div class="auth-card">
-    <div class="auth-header">
-      <div class="brand">📓 Notebook</div>
-      <p>Digital notes for class, from any device.</p>
+    <div class="auth-card-header">
+      <div class="brand-mark-row">
+        <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+          <rect x="8" y="6" width="40" height="52" rx="7" fill="#6C4AB6"/>
+          <rect x="8" y="6" width="8" height="52" rx="4" fill="#4E3585"/>
+          <line x1="24" y1="20" x2="42" y2="20" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
+          <line x1="24" y1="29" x2="42" y2="29" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".85"/>
+          <line x1="24" y1="38" x2="36" y2="38" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".7"/>
+          <rect x="38" y="2" width="9" height="30" rx="4.5" transform="rotate(40 42.5 17)" fill="#F2A6C4" stroke="#fff" stroke-width="1.2"/>
+        </svg>
+        <span>Notebook</span>
+      </div>
+      <p style="margin:2px 0 0;font-size:12.5px;color:#7A6B90;">Log in or create your account</p>
     </div>
     <div class="auth-body">
 
@@ -84,7 +110,9 @@
 
     </div>
   </div>
+  </div>
 </div>
+<div class="credit-footer">Created by TJ Dela Paz</div>
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
