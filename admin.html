@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Admin Dashboard | Notebook</title>
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+<div class="app-shell">
+  <div class="sidebar">
+    <div class="brand">📓 Notebook</div>
+    <div class="who">Admin</div>
+    <nav>
+      <button class="navlink active" id="tabTeachers"><span class="label">Teachers</span></button>
+      <button class="navlink" id="tabStudents"><span class="label">Students</span></button>
+    </nav>
+    <button class="navlink logout btn-outline" id="logoutBtn" style="color:#fff;border-color:rgba(255,255,255,.4);">Log out</button>
+  </div>
+
+  <div class="main">
+    <div class="page-title" id="panelTitle">Teacher accounts</div>
+    <div class="page-sub">All registered accounts, straight from the database.</div>
+
+    <div class="card">
+      <table>
+        <thead>
+          <tr>
+            <th>Name</th><th>Username</th><th>Password</th><th>Age</th><th>Sex</th><th>Region</th>
+          </tr>
+        </thead>
+        <tbody id="accountsBody"></tbody>
+      </table>
+      <div id="accountsEmpty" class="empty-state hidden">No accounts yet.</div>
+    </div>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="js/firebase-config.js"></script>
+<script src="js/common.js"></script>
+<script src="js/admin.js"></script>
+</body>
+</html>

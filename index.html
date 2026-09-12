@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Notebook | Sign in</title>
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+<div class="auth-wrap">
+  <div class="auth-card">
+    <div class="auth-header">
+      <div class="brand">📓 Notebook</div>
+      <p>Digital notes for class, from any device.</p>
+    </div>
+    <div class="auth-body">
+
+      <div class="role-tabs">
+        <button type="button" class="role-tab active" data-role="student">Student</button>
+        <button type="button" class="role-tab" data-role="teacher">Teacher</button>
+        <button type="button" class="role-tab" data-role="admin">Admin</button>
+      </div>
+
+      <div id="errorBox" class="error-msg hidden"></div>
+      <div id="okBox" class="ok-msg hidden"></div>
+
+      <!-- LOGIN FORM -->
+      <form id="loginForm">
+        <div class="field">
+          <label>Username</label>
+          <input type="text" id="loginUsername" autocomplete="username" required />
+        </div>
+        <div class="field">
+          <label>Password</label>
+          <input type="password" id="loginPassword" autocomplete="current-password" required />
+        </div>
+        <button type="submit" class="btn-primary" style="width:100%" id="loginBtn">Log in</button>
+      </form>
+
+      <div class="form-switch" id="toRegisterWrap">
+        Don't have an account? <a id="toRegister">Create one</a>
+      </div>
+
+      <!-- REGISTER FORM (student/teacher only) -->
+      <form id="registerForm" class="hidden">
+        <div class="field">
+          <label>Full name</label>
+          <input type="text" id="regName" required />
+        </div>
+        <div class="two-col">
+          <div class="field">
+            <label>Age</label>
+            <input type="number" id="regAge" min="3" max="100" required />
+          </div>
+          <div class="field">
+            <label>Sex</label>
+            <select id="regSex" required>
+              <option value="">Select</option>
+              <option>Male</option>
+              <option>Female</option>
+              <option>Other</option>
+            </select>
+          </div>
+        </div>
+        <div class="field">
+          <label>Region</label>
+          <input type="text" id="regRegion" placeholder="e.g. Taguig, NCR" required />
+        </div>
+        <div class="field">
+          <label>Username</label>
+          <input type="text" id="regUsername" required />
+        </div>
+        <div class="field">
+          <label>Password</label>
+          <input type="password" id="regPassword" required />
+        </div>
+        <button type="submit" class="btn-primary" style="width:100%" id="registerBtn">Create account</button>
+      </form>
+
+      <div class="form-switch hidden" id="toLoginWrap">
+        Already have an account? <a id="toLogin">Log in</a>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="js/firebase-config.js"></script>
+<script src="js/common.js"></script>
+<script src="js/auth.js"></script>
+</body>
+</html>

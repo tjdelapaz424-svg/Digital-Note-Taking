@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Notebook</title>
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+<div class="nb-shell">
+  <div class="nb-topbar">
+    <div class="left">
+      <button class="btn-outline btn-small" id="backBtn" style="color:#fff;border-color:rgba(255,255,255,.5);">← Back</button>
+      <div class="title" id="nbTitle">Notebook</div>
+    </div>
+    <div class="status" id="nbStatus">Loading...</div>
+  </div>
+
+  <div class="nb-toolbar" id="editToolbar">
+    <span class="color-dot active" data-color="#1E2A28" style="background:#1E2A28;"></span>
+    <span class="color-dot" data-color="#B23A3A" style="background:#B23A3A;"></span>
+    <span class="color-dot" data-color="#2255A4" style="background:#2255A4;"></span>
+    <div class="divider"></div>
+    <button class="tool-btn active" id="penToolBtn">✏️ Pen</button>
+    <button class="tool-btn" id="textToolBtn">🔤 Add text</button>
+    <div class="divider"></div>
+    <button class="tool-btn" id="undoBtn">↶ Undo</button>
+    <button class="tool-btn" id="redoBtn">↷ Redo</button>
+    <button class="tool-btn" id="clearBtn">🗑 Clear page</button>
+    <div class="divider"></div>
+    <button class="tool-btn" id="addPageBtn">+ Add page</button>
+    <button class="tool-btn" id="removePageBtn">− Remove page</button>
+    <div class="divider"></div>
+    <button class="btn-primary btn-small" id="submitBtn">Submit to teacher</button>
+  </div>
+
+  <div class="nb-canvas-wrap">
+    <div class="nb-page" id="nbPage">
+      <div class="margin-line"></div>
+      <canvas id="nbCanvas" width="850" height="1100"></canvas>
+      <div class="date-stamp" id="dateStamp"></div>
+      <!-- text boxes get inserted here -->
+    </div>
+  </div>
+
+  <div class="nb-bottombar">
+    <button class="tool-btn btn-icon" id="prevPageBtn">‹ Prev</button>
+    <span id="pageIndicator">Page 1 of 1</span>
+    <button class="tool-btn btn-icon" id="nextPageBtn">Next ›</button>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="js/firebase-config.js"></script>
+<script src="js/common.js"></script>
+<script src="js/notebook.js"></script>
+</body>
+</html>

@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Student Dashboard | Notebook</title>
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+<div class="app-shell">
+  <div class="sidebar">
+    <div class="brand">📓 Notebook</div>
+    <div class="who" id="whoLabel">Student</div>
+    <nav>
+      <a class="active"><span class="label">My Classes</span></a>
+    </nav>
+    <button class="navlink logout btn-outline" id="logoutBtn" style="color:#fff;border-color:rgba(255,255,255,.4);">Log out</button>
+  </div>
+
+  <div class="main">
+    <div class="topbar-actions">
+      <div>
+        <div class="page-title">Your classes</div>
+        <div class="page-sub">Join a class with a code from your teacher.</div>
+      </div>
+      <button class="btn-primary" id="joinClassBtn">+ Add class using code</button>
+    </div>
+
+    <div id="classGrid" class="grid-cards"></div>
+    <div id="classEmpty" class="empty-state hidden">You haven't joined any classes yet.</div>
+  </div>
+</div>
+
+<div class="modal-backdrop hidden" id="joinModal">
+  <div class="modal">
+    <h3>Join a class</h3>
+    <p style="font-size:13px;color:#7A8A81;margin-top:0;">Ask your teacher for the class code.</p>
+    <div id="joinError" class="error-msg hidden"></div>
+    <div class="field">
+      <label>Class code</label>
+      <input type="text" id="joinCodeInput" style="text-transform:uppercase;letter-spacing:2px;" maxlength="8" placeholder="e.g. K7Q2XZ" />
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;">
+      <button class="btn-outline" id="cancelJoinBtn">Cancel</button>
+      <button class="btn-primary" id="submitJoinBtn">Request to join</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="js/firebase-config.js"></script>
+<script src="js/common.js"></script>
+<script src="js/student.js"></script>
+</body>
+</html>

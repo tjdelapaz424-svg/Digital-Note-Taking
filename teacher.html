@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Teacher Dashboard | Notebook</title>
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+<div class="app-shell">
+  <div class="sidebar">
+    <div class="brand">📓 Notebook</div>
+    <div class="who" id="whoLabel">Teacher</div>
+    <nav>
+      <a class="active"><span class="label">My Classes</span></a>
+    </nav>
+    <button class="navlink logout btn-outline" id="logoutBtn" style="color:#fff;border-color:rgba(255,255,255,.4);">Log out</button>
+  </div>
+
+  <div class="main">
+    <div class="topbar-actions">
+      <div>
+        <div class="page-title">Your classes</div>
+        <div class="page-sub">Create a class, share the code, and approve who joins.</div>
+      </div>
+      <button class="btn-primary" id="createClassBtn">+ Create class</button>
+    </div>
+
+    <div id="classGrid" class="grid-cards"></div>
+    <div id="classEmpty" class="empty-state hidden">No classes yet. Create your first one above.</div>
+
+    <div id="classDetail" class="hidden" style="margin-top:26px;">
+      <div class="card">
+        <div class="topbar-actions" style="margin-bottom:6px;">
+          <h3 id="detailTitle">Class</h3>
+          <button class="btn-outline btn-small" id="closeDetailBtn">Close</button>
+        </div>
+
+        <div style="margin-bottom:16px;">
+          <span class="pill" style="background:#EFEAD9;color:#5C6B63;">Join code:</span>
+          <span class="class-tile-code" id="detailCode" style="font-family:'Patrick Hand',cursive;font-size:20px;letter-spacing:2px;"></span>
+        </div>
+
+        <div class="topbar-actions" style="margin-bottom:8px;">
+          <h3 style="margin:0;">Pending requests</h3>
+          <button class="btn-sage btn-small" id="approveAllBtn">Approve all</button>
+        </div>
+        <table id="pendingTable">
+          <thead><tr><th>Name</th><th>Username</th><th></th></tr></thead>
+          <tbody id="pendingBody"></tbody>
+        </table>
+        <div id="pendingEmpty" class="empty-state hidden">No pending requests.</div>
+
+        <h3 style="margin-top:22px;">Roster</h3>
+        <table id="rosterTable">
+          <thead><tr><th>Name</th><th>Username</th><th>Notebook</th><th></th></tr></thead>
+          <tbody id="rosterBody"></tbody>
+        </table>
+        <div id="rosterEmpty" class="empty-state hidden">No approved students yet.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="js/firebase-config.js"></script>
+<script src="js/common.js"></script>
+<script src="js/teacher.js"></script>
+</body>
+</html>
