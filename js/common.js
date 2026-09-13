@@ -33,6 +33,25 @@ function usernameKey(username) {
 
 // Password is case-sensitive and stored exactly as typed - no changes.
 
+// ----- Gmail-only accounts -----
+// New accounts must sign up with a real-looking @gmail.com address. This is
+// also what we search on in the admin dashboard, so it's kept simple and
+// case-insensitive.
+function isGmailAddress(value) {
+  return /^[a-z0-9](?:[a-z0-9._%+-]{0,63})@gmail\.com$/i.test((value || '').trim());
+}
+function normalizeGmail(value) {
+  return (value || '').trim().toLowerCase();
+}
+
+// ----- Phone number -----
+// Loose on purpose (PH mobile numbers, landlines, +country codes all vary) —
+// we just want "looks like a phone number", not strict format validation.
+function isLikelyPhone(value) {
+  const digits = (value || '').replace(/[^\d]/g, '');
+  return digits.length >= 7 && digits.length <= 15;
+}
+
 function randomCode(len = 6) {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no confusing 0/O/1/I
   let out = '';

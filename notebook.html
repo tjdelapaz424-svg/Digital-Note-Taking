@@ -32,8 +32,8 @@
     <button class="tool-btn" id="highlighterToolBtn">🖍 Highlighter</button>
     <button class="tool-btn" id="eraserToolBtn">🧽 Eraser</button>
     <button class="tool-btn" id="textToolBtn">🔤 Add text</button>
-    <label class="brush-control" for="brushSize" title="Brush size">
-      <span>Size</span><input id="brushSize" type="range" min="1" max="12" value="3" aria-label="Brush size"><output id="brushSizeValue">3</output>
+    <label class="brush-control" for="brushSize" title="Brush size / text size">
+      <span id="brushSizeLabel">Size</span><input id="brushSize" type="range" min="1" max="12" value="3" aria-label="Brush size"><output id="brushSizeValue">3</output>
     </label>
     <button class="tool-btn" id="penOnlyBtn" aria-pressed="false" title="When enabled, only a stylus can write">✒️ Pen only</button>
     <div class="divider"></div>
@@ -43,6 +43,9 @@
     <div class="divider"></div>
     <button class="tool-btn" id="addPageBtn">+ Add page</button>
     <button class="tool-btn" id="removePageBtn">− Remove page</button>
+    <div class="divider"></div>
+    <button class="tool-btn" id="customizeBtn">🎨 Customize</button>
+    <button class="tool-btn" id="aiStudyBtn">✨ AI Study Tools</button>
     <div class="divider"></div>
     <button class="btn-primary btn-small" id="submitBtn">Submit to teacher</button>
   </div>
@@ -85,6 +88,77 @@
     </div>
   </div>
 </div>
+
+<!-- CUSTOMIZE NOTEBOOK MODAL -->
+<div class="modal-backdrop hidden" id="customizeModal" role="dialog" aria-modal="true">
+  <div class="modal">
+    <h3>Customize your notebook</h3>
+    <p style="font-size:13px;color:#7A6B90;margin-top:0;">Pick an accent color and paper tone. This only changes how your notebook looks.</p>
+    <div class="field">
+      <label>Accent color</label>
+      <div class="swatch-row" id="accentSwatches">
+        <span class="swatch-dot" data-accent="#6C4AB6" style="background:#6C4AB6;"></span>
+        <span class="swatch-dot" data-accent="#2E7D5B" style="background:#2E7D5B;"></span>
+        <span class="swatch-dot" data-accent="#B23A3A" style="background:#B23A3A;"></span>
+        <span class="swatch-dot" data-accent="#2255A4" style="background:#2255A4;"></span>
+        <span class="swatch-dot" data-accent="#C97A1F" style="background:#C97A1F;"></span>
+        <span class="swatch-dot" data-accent="#33234A" style="background:#33234A;"></span>
+      </div>
+    </div>
+    <div class="field">
+      <label>Paper tone</label>
+      <div class="swatch-row" id="paperSwatches">
+        <span class="swatch-dot" data-paper="#FFFFFF" style="background:#FFFFFF;border:1.5px solid #E3D6ED;"></span>
+        <span class="swatch-dot" data-paper="#FFFBEF" style="background:#FFFBEF;"></span>
+        <span class="swatch-dot" data-paper="#F1FBF4" style="background:#F1FBF4;"></span>
+        <span class="swatch-dot" data-paper="#EFF5FC" style="background:#EFF5FC;"></span>
+        <span class="swatch-dot" data-paper="#FCEFF6" style="background:#FCEFF6;"></span>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:8px;">
+      <button class="btn-outline" id="cancelCustomizeBtn">Cancel</button>
+      <button class="btn-primary" id="saveCustomizeBtn">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- AI STUDY TOOLS MODAL -->
+<div class="modal-backdrop hidden" id="aiStudyModal" role="dialog" aria-modal="true">
+  <div class="modal ai-study-modal">
+    <h3>AI Study Tools</h3>
+    <p style="font-size:13px;color:#7A6B90;margin-top:0;">Generate a quiz or flashcards from the typed text notes in this notebook.</p>
+    <div id="aiStudyError" class="error-msg hidden"></div>
+    <div id="aiStudySetup">
+      <div class="two-col">
+        <div class="field">
+          <label>Type</label>
+          <select id="aiStudyMode">
+            <option value="quiz">Quiz (multiple choice)</option>
+            <option value="flashcards">Flashcards</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>How many</label>
+          <select id="aiStudyCount">
+            <option value="5">5</option>
+            <option value="8">8</option>
+            <option value="10">10</option>
+          </select>
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;justify-content:flex-end;">
+        <button class="btn-outline" id="cancelAiStudyBtn">Cancel</button>
+        <button class="btn-primary" id="generateAiStudyBtn">Generate</button>
+      </div>
+    </div>
+    <div id="aiStudyLoading" class="hidden" style="text-align:center;padding:30px 0;">
+      <span class="spinner"></span>
+      <p style="font-size:13px;color:#7A6B90;">Reading your notes and generating study material...</p>
+    </div>
+    <div id="aiStudyResults" class="hidden"></div>
+  </div>
+</div>
+
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>

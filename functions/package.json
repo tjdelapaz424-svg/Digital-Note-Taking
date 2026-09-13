@@ -1,0 +1,13 @@
+{
+  "name": "notebook-functions",
+  "description": "Cloud Functions for the Notebook app (AI Study Tools)",
+  "engines": {
+    "node": "20"
+  },
+  "main": "index.js",
+  "dependencies": {
+    "firebase-functions": "^5.0.0",
+    "firebase-admin": "^12.0.0"
+  },
+  "private": true
+}

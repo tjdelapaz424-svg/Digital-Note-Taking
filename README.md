@@ -1,6 +1,58 @@
 # Notebook — school notes app
 
-## What's new in this version
+## What's new in THIS version
+
+**Accounts:** sign-up is now Gmail-only (`@gmail.com`, enforced on the
+register form) and every account also collects a phone number. "Continue
+with Google" now works properly for brand-new users too: if the Google
+account isn't registered yet, you're taken straight into a short onboarding
+form (name, age, sex, region, phone) instead of a bare, incomplete account
+being silently created.
+
+**Notebook:** typed text boxes now support adjustable size as well as color
+— tap a text box to open a small floating toolbar (color swatches, a size
+slider, delete) right next to it. A new **Customize** button lets each
+student pick an accent color and paper tone for their own notebook. A new
+**AI Study Tools** button turns the typed notes in a notebook into a
+multiple-choice quiz or flashcards (see setup section below — this needs a
+small Cloud Function and an Anthropic API key).
+
+**Teacher-side focus tracking:** while a student has their notebook open in
+edit mode, the app quietly counts how many times they switch away to
+another tab or app. That count now shows up as a pill ("On task" / "N tab
+switches") in the roster table, so a teacher can see who's actually taking
+notes.
+
+**Admin:** the accounts panel now shows separate Teacher accounts / Student
+accounts counters, a Phone column, and the search box matches against Gmail
+address in addition to name and region.
+
+## AI Study Tools setup (optional)
+
+The quiz/flashcard generator calls a small Firebase Cloud Function
+(`functions/index.js`) which forwards your notes to the Anthropic API. Your
+API key never touches the browser.
+
+1. Make sure you're on the **Blaze (pay-as-you-go)** Firebase plan — Cloud
+   Functions require it (it still has a generous free tier).
+2. Get an API key from https://console.anthropic.com.
+3. From the project root:
+   ```
+   cd functions
+   npm install
+   firebase functions:secrets:set ANTHROPIC_API_KEY
+   firebase deploy --only functions
+   ```
+4. Firebase will print a URL like
+   `https://us-central1-YOUR_PROJECT.cloudfunctions.net/generateStudyTools`.
+   Copy it into `js/notebook.js`, replacing the placeholder value of
+   `AI_STUDY_FUNCTION_URL` near the bottom of the file.
+5. Redeploy/republish your site (GitHub Pages, etc.) with that change.
+
+If you skip this setup, every other feature in the app still works — the
+"AI Study Tools" button will just show an error toast when clicked.
+
+## What's new in the previous version
 
 **Students:** highlighter and eraser tools in the notebook, page thumbnails
 down the side, a History page listing every notebook you've submitted, and
@@ -89,10 +141,12 @@ git push -u origin main
 - **Admin** (fixed, no registration): username `ADMIN2026`, password
   `ADMIN2026`. Admin can view every teacher and student account (including
   their stored password) under the Teachers / Students tabs.
-- **Teacher / Student**: register from the login page. Usernames are
-  **not** case-sensitive (`Admin2026` = `ADMIN2026`), but passwords
-  **are** case-sensitive exactly as typed. A username already in use is
-  rejected at registration.
+- **Teacher / Student**: register from the login page with a `@gmail.com`
+  address (this doubles as your username) — or use "Continue with Google"
+  and fill in the short onboarding form the first time. Usernames/Gmail
+  addresses are **not** case-sensitive, but passwords **are** case-sensitive
+  exactly as typed. A Gmail address already in use is rejected at
+  registration.
 
 ## How the pieces fit together
 

@@ -35,6 +35,14 @@ let activePointerId = null;
 let redoStack = []; // per-notebook-load redo stack of page snapshots, keyed by page index
 let dragState = null;
 
+// ---- Text size, notebook theme, focus tracking, text selection ----
+let currentTextSize = 20; // px, used for newly created text boxes and as the "Size" slider value while the text tool is active
+let notebookTheme = { accent: '#6C4AB6', paper: '#FFFFFF' }; // per-notebook customization, saved with the notebook
+let selectedTextId = null; // id of the text box currently showing its mini toolbar
+let miniToolbarEl = null;
+let focusStats = { tabSwitches: 0, lastAwayAt: null }; // how often the student left the tab while editing
+let focusSaveTimer = null;
+
 const TOOL_SETTINGS = {
   pen: { width: 3, alpha: 1, composite: 'source-over' },
   highlighter: { width: 18, alpha: 0.35, composite: 'source-over' },
@@ -78,10 +86,32 @@ async function init() {
     notebookData = { pages: [blankPage()], submitted: false, classCode, studentKey };
     await saveNotebook();
   }
+  if (notebookData.theme) notebookTheme = { ...notebookTheme, ...notebookData.theme };
+  if (notebookData.focusStats) focusStats = { ...focusStats, ...notebookData.focusStats };
+  applyTheme();
   currentPageIndex = 0;
   renderStatus();
   renderDueAndFeedback();
   renderPage();
+  if (canEdit) initFocusTracking();
+}
+
+// ---------- Notebook theme (Customize) ----------
+function applyTheme() {
+  nbPage.style.setProperty('--nb-accent', notebookTheme.accent || '#6C4AB6');
+  nbPage.style.background = notebookTheme.paper && notebookTheme.paper !== '#FFFFFF' ? notebookTheme.paper : '';
+  // Re-apply on top of the ruled/grid background image, which is set via CSS classes.
+  if (notebookTheme.paper && notebookTheme.paper !== '#FFFFFF') {
+    const template = currentPage() ? (currentPage().template || 'ruled') : 'ruled';
+    if (template === 'ruled') {
+      nbPage.style.background = `repeating-linear-gradient(to bottom, ${notebookTheme.paper} 0, ${notebookTheme.paper} 39px, #DCE7F0 39px, #DCE7F0 40px)`;
+    } else if (template === 'grid') {
+      nbPage.style.backgroundColor = notebookTheme.paper;
+    } else {
+      nbPage.style.background = notebookTheme.paper;
+    }
+  }
+  document.getElementById('dateStamp').style.color = notebookTheme.accent || '#5B4570';
 }
 
 function renderDueAndFeedback() {
@@ -216,8 +246,10 @@ function renderPage(keepScroll) {
   nbPage.classList.remove('template-blank', 'template-grid', 'template-ruled');
   nbPage.classList.add(`template-${template}`);
   dateStamp.innerText = page.date;
+  applyTheme();
 
-  // clear existing text boxes
+  // clear existing text boxes and any open mini toolbar
+  clearTextSelection();
   nbPage.querySelectorAll('.nb-text-box').forEach(el => el.remove());
   page.texts.forEach(t => renderTextBox(t));
 
@@ -300,8 +332,9 @@ async function exportPdf() {
 
       page.texts.forEach(t => {
         octx.fillStyle = t.color || '#1E2A28';
-        octx.font = "20px 'Patrick Hand', cursive, sans-serif";
-        octx.fillText(t.text || '', (t.x / 100) * off.width, (t.y / 100) * off.height + 20);
+        const fs = t.size || 20;
+        octx.font = `${fs}px 'Patrick Hand', cursive, sans-serif`;
+        octx.fillText(t.text || '', (t.x / 100) * off.width, (t.y / 100) * off.height + fs);
       });
 
       octx.fillStyle = '#5B4570';
@@ -326,10 +359,11 @@ document.getElementById('exportPdfBtn').addEventListener('click', exportPdf);
 
 function renderTextBox(t) {
   const el = document.createElement('div');
-  el.className = 'nb-text-box';
+  el.className = 'nb-text-box' + (t.id === selectedTextId ? ' selected' : '');
   el.style.left = t.x + '%';
   el.style.top = t.y + '%';
   el.style.color = t.color || '#1E2A28';
+  el.style.fontSize = (t.size || 20) + 'px';
   el.innerText = t.text || '';
   el.dataset.id = t.id;
 
@@ -340,16 +374,13 @@ function renderTextBox(t) {
     delX.innerText = '✕';
     delX.addEventListener('click', (e) => {
       e.stopPropagation();
-      pushHistory();
-      const page = currentPage();
-      page.texts = page.texts.filter(x => x.id !== t.id);
-      renderPage(true);
-      saveNotebook();
+      deleteTextBox(t.id);
     });
     el.appendChild(delX);
 
     el.addEventListener('dblclick', (e) => {
       e.stopPropagation();
+      clearTextSelection();
       el.contentEditable = 'true';
       el.classList.add('editing');
       el.focus();
@@ -369,7 +400,7 @@ function renderTextBox(t) {
       if (el.classList.contains('editing')) return;
       e.preventDefault();
       const rect = nbPage.getBoundingClientRect();
-      dragState = { el, id: t.id, startX: e.clientX, startY: e.clientY, origLeft: parseFloat(el.style.left), origTop: parseFloat(el.style.top), rect };
+      dragState = { el, id: t.id, startX: e.clientX, startY: e.clientY, origLeft: parseFloat(el.style.left), origTop: parseFloat(el.style.top), rect, moved: false };
     });
   } else {
     el.contentEditable = 'false';
@@ -377,16 +408,96 @@ function renderTextBox(t) {
   }
 
   nbPage.appendChild(el);
+  if (t.id === selectedTextId) showMiniToolbar(t.id);
+}
+
+// ---------- Click-to-select mini toolbar for text boxes ----------
+function deleteTextBox(id) {
+  pushHistory();
+  const page = currentPage();
+  page.texts = page.texts.filter(x => x.id !== id);
+  clearTextSelection();
+  renderPage(true);
+  saveNotebook();
+}
+
+function clearTextSelection() {
+  selectedTextId = null;
+  if (miniToolbarEl) { miniToolbarEl.remove(); miniToolbarEl = null; }
+  nbPage.querySelectorAll('.nb-text-box.selected').forEach(el => el.classList.remove('selected'));
+}
+
+function showMiniToolbar(textId) {
+  const page = currentPage();
+  const t = page.texts.find(x => x.id === textId);
+  const box = nbPage.querySelector(`[data-id="${textId}"]`);
+  if (!t || !box) return;
+
+  if (miniToolbarEl) miniToolbarEl.remove();
+  const bar = document.createElement('div');
+  bar.className = 'text-mini-toolbar';
+  bar.style.left = box.style.left;
+  bar.style.top = box.style.top;
+
+  const colors = ['#1E2A28', '#B23A3A', '#2255A4', '#33234A'];
+  colors.forEach(c => {
+    const dot = document.createElement('span');
+    dot.className = 'mini-color' + (t.color === c ? ' active' : '');
+    dot.style.background = c;
+    dot.addEventListener('click', (e) => {
+      e.stopPropagation();
+      pushHistory();
+      t.color = c;
+      renderPage(true);
+      selectedTextId = textId;
+      showMiniToolbar(textId);
+      saveNotebook();
+    });
+    bar.appendChild(dot);
+  });
+
+  const sizeInput = document.createElement('input');
+  sizeInput.type = 'range';
+  sizeInput.min = '12';
+  sizeInput.max = '48';
+  sizeInput.value = t.size || 20;
+  sizeInput.title = 'Text size';
+  sizeInput.addEventListener('input', () => {
+    box.style.fontSize = sizeInput.value + 'px';
+  });
+  sizeInput.addEventListener('change', () => {
+    pushHistory();
+    t.size = Number(sizeInput.value);
+    currentTextSize = t.size;
+    saveNotebook();
+  });
+  bar.appendChild(sizeInput);
+
+  const del = document.createElement('span');
+  del.className = 'mini-del';
+  del.innerText = 'Delete';
+  del.addEventListener('click', (e) => { e.stopPropagation(); deleteTextBox(textId); });
+  bar.appendChild(del);
+
+  nbPage.appendChild(bar);
+  miniToolbarEl = bar;
 }
 
 document.addEventListener('pointermove', (e) => {
   if (!dragState) return;
-  const dxPct = ((e.clientX - dragState.startX) / dragState.rect.width) * 100;
-  const dyPct = ((e.clientY - dragState.startY) / dragState.rect.height) * 100;
+  const dxPx = e.clientX - dragState.startX;
+  const dyPx = e.clientY - dragState.startY;
+  if (Math.abs(dxPx) > 4 || Math.abs(dyPx) > 4) dragState.moved = true;
+  const dxPct = (dxPx / dragState.rect.width) * 100;
+  const dyPct = (dyPx / dragState.rect.height) * 100;
   const newLeft = Math.max(0, Math.min(96, dragState.origLeft + dxPct));
   const newTop = Math.max(0, Math.min(96, dragState.origTop + dyPct));
   dragState.el.style.left = newLeft + '%';
   dragState.el.style.top = newTop + '%';
+  if (miniToolbarEl && dragState.id === selectedTextId) {
+    miniToolbarEl.style.left = newLeft + '%';
+    miniToolbarEl.style.top = newTop + '%';
+  }
 });
 document.addEventListener('pointerup', () => {
   if (!dragState) return;
@@ -395,7 +506,13 @@ document.addEventListener('pointerup', () => {
   if (target) {
     target.x = parseFloat(dragState.el.style.left);
     target.y = parseFloat(dragState.el.style.top);
-    saveNotebook();
+    if (dragState.moved) {
+      saveNotebook();
+    } else {
+      // A tap rather than a drag — toggle the mini toolbar for this text box.
+      if (selectedTextId === dragState.id) clearTextSelection();
+      else { clearTextSelection(); selectedTextId = dragState.id; showMiniToolbar(dragState.id); }
+    }
   }
   dragState = null;
 });
@@ -416,6 +533,7 @@ function canvasPointFromEvent(e) {
 
 canvas.addEventListener('pointerdown', (e) => {
   if (!canEdit) return;
+  clearTextSelection();
   if (penOnly && e.pointerType !== 'pen' && currentTool !== 'text') {
     showToast('Pen-only mode is on. Use a stylus, or turn off Pen only.');
     return;
@@ -428,7 +546,7 @@ canvas.addEventListener('pointerdown', (e) => {
     const yPct = ((e.clientY - rect.top) / rect.height) * 100;
     pushHistory();
     const page = currentPage();
-    const t = { id: 't' + Date.now(), x: xPct, y: yPct, text: '', color: currentColor };
+    const t = { id: 't' + Date.now(), x: xPct, y: yPct, text: '', color: currentColor, size: currentTextSize };
     page.texts.push(t);
     renderPage(true);
     saveNotebook();
@@ -478,25 +596,64 @@ document.querySelectorAll('.color-dot').forEach(dot => {
   });
 });
 
+const brushSizeInput = document.getElementById('brushSize');
+const brushSizeValue = document.getElementById('brushSizeValue');
+const brushSizeLabel = document.getElementById('brushSizeLabel');
+
+function syncSizeSliderToTool() {
+  if (currentTool === 'text') {
+    brushSizeLabel.innerText = 'Text size';
+    brushSizeInput.min = '12';
+    brushSizeInput.max = '48';
+    brushSizeInput.value = currentTextSize;
+    brushSizeValue.innerText = currentTextSize;
+  } else {
+    brushSizeLabel.innerText = 'Size';
+    brushSizeInput.min = '1';
+    brushSizeInput.max = '12';
+    brushSizeInput.value = brushSize;
+    brushSizeValue.innerText = brushSize;
+  }
+}
+
 function setTool(tool) {
   currentTool = tool;
   document.getElementById('penToolBtn').classList.toggle('active', tool === 'pen');
   document.getElementById('highlighterToolBtn').classList.toggle('active', tool === 'highlighter');
   document.getElementById('eraserToolBtn').classList.toggle('active', tool === 'eraser');
   document.getElementById('textToolBtn').classList.toggle('active', tool === 'text');
+  syncSizeSliderToTool();
 }
 document.getElementById('penToolBtn').addEventListener('click', () => setTool('pen'));
 document.getElementById('highlighterToolBtn').addEventListener('click', () => setTool('highlighter'));
 document.getElementById('eraserToolBtn').addEventListener('click', () => setTool('eraser'));
 document.getElementById('textToolBtn').addEventListener('click', () => setTool('text'));
 
-const brushSizeInput = document.getElementById('brushSize');
-const brushSizeValue = document.getElementById('brushSizeValue');
 brushSizeInput.addEventListener('input', () => {
-  brushSize = Number(brushSizeInput.value);
-  brushSizeValue.value = brushSize;
-  brushSizeValue.innerText = brushSize;
+  const val = Number(brushSizeInput.value);
+  if (currentTool === 'text') {
+    currentTextSize = val;
+    brushSizeValue.innerText = val;
+    // Live-update the size of a currently-selected text box, if any.
+    if (selectedTextId) {
+      const page = currentPage();
+      const target = page.texts.find(x => x.id === selectedTextId);
+      if (target) {
+        target.size = val;
+        const box = nbPage.querySelector(`[data-id="${selectedTextId}"]`);
+        if (box) box.style.fontSize = val + 'px';
+      }
+    }
+  } else {
+    brushSize = val;
+    brushSizeValue.value = brushSize;
+    brushSizeValue.innerText = brushSize;
+  }
 });
+brushSizeInput.addEventListener('change', () => {
+  if (currentTool === 'text' && selectedTextId) saveNotebook();
+});
+syncSizeSliderToTool();
 
 const penOnlyBtn = document.getElementById('penOnlyBtn');
 function renderPenOnly() {
@@ -552,6 +709,176 @@ document.getElementById('nextPageBtn').addEventListener('click', () => {
   if (currentPageIndex < notebookData.pages.length - 1) { currentPageIndex++; renderPage(); }
 });
 
+// ---------- Customize notebook (theme) ----------
+const customizeModal = document.getElementById('customizeModal');
+document.getElementById('customizeBtn').addEventListener('click', () => {
+  document.querySelectorAll('#accentSwatches .swatch-dot').forEach(d => d.classList.toggle('active', d.dataset.accent.toLowerCase() === (notebookTheme.accent || '').toLowerCase()));
+  document.querySelectorAll('#paperSwatches .swatch-dot').forEach(d => d.classList.toggle('active', d.dataset.paper.toLowerCase() === (notebookTheme.paper || '').toLowerCase()));
+  customizeModal.classList.remove('hidden');
+});
+document.getElementById('cancelCustomizeBtn').addEventListener('click', () => customizeModal.classList.add('hidden'));
+
+let draftTheme = null;
+document.querySelectorAll('#accentSwatches .swatch-dot').forEach(dot => {
+  dot.addEventListener('click', () => {
+    document.querySelectorAll('#accentSwatches .swatch-dot').forEach(d => d.classList.remove('active'));
+    dot.classList.add('active');
+    draftTheme = draftTheme || { ...notebookTheme };
+    draftTheme.accent = dot.dataset.accent;
+  });
+});
+document.querySelectorAll('#paperSwatches .swatch-dot').forEach(dot => {
+  dot.addEventListener('click', () => {
+    document.querySelectorAll('#paperSwatches .swatch-dot').forEach(d => d.classList.remove('active'));
+    dot.classList.add('active');
+    draftTheme = draftTheme || { ...notebookTheme };
+    draftTheme.paper = dot.dataset.paper;
+  });
+});
+document.getElementById('saveCustomizeBtn').addEventListener('click', () => {
+  if (draftTheme) notebookTheme = { ...notebookTheme, ...draftTheme };
+  draftTheme = null;
+  applyTheme();
+  saveNotebook();
+  customizeModal.classList.add('hidden');
+  showToast('Notebook look updated.');
+});
+
+// ---------- Focus / tab-switch tracking (teachers can see this on the roster) ----------
+function initFocusTracking() {
+  let lastRecordedAt = 0;
+  function recordAway() {
+    const now = Date.now();
+    // visibilitychange and window blur often fire together for the same
+    // tab-switch — collapse anything within half a second into one event.
+    if (now - lastRecordedAt < 500) return;
+    lastRecordedAt = now;
+    focusStats.tabSwitches = (focusStats.tabSwitches || 0) + 1;
+    focusStats.lastAwayAt = now;
+    // Debounce the actual write so quick alt-tabbing doesn't spam Firestore.
+    clearTimeout(focusSaveTimer);
+    focusSaveTimer = setTimeout(() => saveNotebook(), 1500);
+  }
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) recordAway();
+  });
+  window.addEventListener('blur', recordAway);
+}
+
+// ---------- AI Study Tools (quiz / flashcards generated from typed notes) ----------
+// Calls a Firebase Cloud Function (see /functions) that talks to the Anthropic API
+// server-side, so no API key is ever exposed in the browser. Update this URL after
+// you deploy the function (see README "AI Study Tools setup").
+const AI_STUDY_FUNCTION_URL = 'https://REGION-PROJECT_ID.cloudfunctions.net/generateStudyTools';
+
+function collectNotebookText() {
+  return notebookData.pages
+    .map((p, i) => (p.texts || []).map(t => t.text).filter(Boolean).join('\n'))
+    .filter(Boolean)
+    .join('\n\n');
+}
+
+const aiStudyModal = document.getElementById('aiStudyModal');
+const aiStudySetup = document.getElementById('aiStudySetup');
+const aiStudyLoading = document.getElementById('aiStudyLoading');
+const aiStudyResults = document.getElementById('aiStudyResults');
+const aiStudyError = document.getElementById('aiStudyError');
+
+document.getElementById('aiStudyBtn').addEventListener('click', () => {
+  aiStudyError.classList.add('hidden');
+  aiStudySetup.classList.remove('hidden');
+  aiStudyLoading.classList.add('hidden');
+  aiStudyResults.classList.add('hidden');
+  aiStudyResults.innerHTML = '';
+  aiStudyModal.classList.remove('hidden');
+});
+document.getElementById('cancelAiStudyBtn').addEventListener('click', () => aiStudyModal.classList.add('hidden'));
+
+document.getElementById('generateAiStudyBtn').addEventListener('click', async () => {
+  const notesText = collectNotebookText();
+  if (!notesText || notesText.trim().length < 20) {
+    aiStudyError.innerText = 'Add a bit more typed text to your notes first — there\'s not enough here yet to work with.';
+    aiStudyError.classList.remove('hidden');
+    return;
+  }
+  const mode = document.getElementById('aiStudyMode').value;
+  const count = Number(document.getElementById('aiStudyCount').value);
+
+  aiStudyError.classList.add('hidden');
+  aiStudySetup.classList.add('hidden');
+  aiStudyLoading.classList.remove('hidden');
+
+  try {
+    const res = await fetch(AI_STUDY_FUNCTION_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ notesText, mode, count })
+    });
+    if (!res.ok) throw new Error('Server returned ' + res.status);
+    const data = await res.json();
+    renderStudyResults(mode, data.items || []);
+  } catch (err) {
+    console.error(err);
+    aiStudyLoading.classList.add('hidden');
+    aiStudySetup.classList.remove('hidden');
+    aiStudyError.innerText = 'Could not generate study material right now. Please try again in a moment.';
+    aiStudyError.classList.remove('hidden');
+  }
+});
+
+function renderStudyResults(mode, items) {
+  aiStudyLoading.classList.add('hidden');
+  aiStudyResults.classList.remove('hidden');
+  aiStudyResults.innerHTML = '';
+
+  if (!items.length) {
+    aiStudyResults.innerHTML = '<p style="font-size:13px;color:#7A6B90;">No study material could be generated from these notes.</p>';
+  } else if (mode === 'quiz') {
+    items.forEach((q, i) => {
+      const card = document.createElement('div');
+      card.className = 'study-card';
+      card.innerHTML = `<div class="q-num">Question ${i + 1}</div><div class="q-text">${escapeHtml(q.question || '')}</div>`;
+      (q.choices || []).forEach((choice, ci) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'study-choice';
+        btn.innerText = choice;
+        btn.addEventListener('click', () => {
+          card.querySelectorAll('.study-choice').forEach(b => b.disabled = true);
+          const isCorrect = ci === q.correctIndex;
+          btn.classList.add(isCorrect ? 'correct' : 'incorrect');
+          if (!isCorrect && q.correctIndex != null && card.querySelectorAll('.study-choice')[q.correctIndex]) {
+            card.querySelectorAll('.study-choice')[q.correctIndex].classList.add('correct');
+          }
+        });
+        card.appendChild(btn);
+      });
+      aiStudyResults.appendChild(card);
+    });
+  } else {
+    items.forEach((f, i) => {
+      const card = document.createElement('div');
+      card.className = 'flash-card';
+      card.dataset.showing = 'front';
+      card.innerHTML = `<div>${escapeHtml(f.front || '')}<span class="flash-hint">Tap to flip</span></div>`;
+      card.addEventListener('click', () => {
+        const showingFront = card.dataset.showing === 'front';
+        card.dataset.showing = showingFront ? 'back' : 'front';
+        card.innerHTML = `<div>${escapeHtml(showingFront ? (f.back || '') : (f.front || ''))}<span class="flash-hint">Tap to flip</span></div>`;
+      });
+      aiStudyResults.appendChild(card);
+    });
+  }
+
+  const doneBtn = document.createElement('button');
+  doneBtn.className = 'btn-outline';
+  doneBtn.style.width = '100%';
+  doneBtn.style.marginTop = '4px';
+  doneBtn.innerText = 'Close';
+  doneBtn.addEventListener('click', () => aiStudyModal.classList.add('hidden'));
+  aiStudyResults.appendChild(doneBtn);
+}
+
 document.getElementById('submitBtn').addEventListener('click', async () => {
   if (!confirm('Submit this notebook to your teacher?')) return;
   notebookData.submitted = true;
@@ -565,12 +892,15 @@ document.getElementById('submitBtn').addEventListener('click', async () => {
 // ---------- Persistence ----------
 function saveNotebook(withTimestamp) {
   const cleanPages = notebookData.pages.map(p => ({
-    id: p.id, date: p.date, template: p.template || 'ruled', strokes: p.strokes, texts: p.texts.map(t => ({ id: t.id, x: t.x, y: t.y, text: t.text, color: t.color }))
+    id: p.id, date: p.date, template: p.template || 'ruled', strokes: p.strokes,
+    texts: p.texts.map(t => ({ id: t.id, x: t.x, y: t.y, text: t.text, color: t.color, size: t.size || 20 }))
   }));
   const payload = {
     classCode, studentKey,
     pages: cleanPages,
     submitted: !!notebookData.submitted,
+    theme: notebookTheme,
+    focusStats,
     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
   };
   if (withTimestamp) payload.submittedAt = firebase.firestore.FieldValue.serverTimestamp();

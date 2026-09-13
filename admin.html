@@ -25,19 +25,21 @@
 
     <div class="stat-row">
       <div class="stat-card"><div class="stat-num" id="statTotalAccounts">0</div><div class="stat-label">Total accounts</div></div>
+      <div class="stat-card"><div class="stat-num" id="statTeacherAccounts">0</div><div class="stat-label">Teacher accounts</div></div>
+      <div class="stat-card"><div class="stat-num" id="statStudentAccounts">0</div><div class="stat-label">Student accounts</div></div>
       <div class="stat-card"><div class="stat-num" id="statTotalClasses">0</div><div class="stat-label">Classes</div></div>
       <div class="stat-card"><div class="stat-num" id="statTotalSubmitted">0</div><div class="stat-label">Notebooks submitted</div></div>
     </div>
 
     <div class="search-row">
-      <input type="text" id="searchInput" placeholder="Search by name or region..." />
+      <input type="text" id="searchInput" placeholder="Search by Gmail address, name, or region..." />
     </div>
 
     <div class="card">
       <table>
         <thead>
           <tr>
-            <th>Name</th><th>Username</th><th>Password</th><th>Age</th><th>Sex</th><th>Region</th><th>Status</th><th></th>
+            <th>Name</th><th>Gmail</th><th>Phone</th><th>Password</th><th>Age</th><th>Sex</th><th>Region</th><th>Status</th><th></th>
           </tr>
         </thead>
         <tbody id="accountsBody"></tbody>

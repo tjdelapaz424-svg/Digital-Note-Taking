@@ -54,8 +54,8 @@
       <!-- LOGIN FORM -->
       <form id="loginForm">
         <div class="field">
-          <label>Username</label>
-          <input type="text" id="loginUsername" autocomplete="username" required />
+          <label id="loginUsernameLabel">Gmail address</label>
+          <input type="text" id="loginUsername" autocomplete="username" placeholder="you@gmail.com" required />
         </div>
         <div class="field">
           <label>Password</label>
@@ -105,8 +105,13 @@
           <input type="text" id="regRegion" placeholder="e.g. Taguig, NCR" required />
         </div>
         <div class="field">
-          <label>Username</label>
-          <input type="text" id="regUsername" required />
+          <label>Phone number</label>
+          <input type="tel" id="regPhone" placeholder="e.g. 09171234567" required />
+        </div>
+        <div class="field">
+          <label>Gmail address <span style="font-weight:400;color:#8E7BA3;">(this is also your username)</span></label>
+          <input type="email" id="regUsername" placeholder="you@gmail.com" required />
+          <div class="field-hint" id="regEmailHint" style="font-size:11.5px;color:#8E7BA3;margin-top:4px;">Must end in @gmail.com</div>
         </div>
         <div class="field">
           <label>Password</label>
@@ -126,6 +131,42 @@
       <div class="form-switch hidden" id="toLoginWrap">
         Already have an account? <a id="toLogin">Log in</a>
       </div>
+
+      <!-- GOOGLE ONBOARDING FORM (shown once, for a Gmail account signing in for the first time) -->
+      <form id="googleOnboardForm" class="hidden">
+        <p style="font-size:13px;color:#7A6B90;margin:0 0 14px;">
+          We don't have an account for <strong id="onboardEmailLabel"></strong> yet. Fill in a few details to finish setting it up.
+        </p>
+        <div class="field">
+          <label>Full name</label>
+          <input type="text" id="onboardName" required />
+        </div>
+        <div class="two-col">
+          <div class="field">
+            <label>Age</label>
+            <input type="number" id="onboardAge" min="3" max="100" required />
+          </div>
+          <div class="field">
+            <label>Sex</label>
+            <select id="onboardSex" required>
+              <option value="">Select</option>
+              <option>Male</option>
+              <option>Female</option>
+              <option>Other</option>
+            </select>
+          </div>
+        </div>
+        <div class="field">
+          <label>Region</label>
+          <input type="text" id="onboardRegion" placeholder="e.g. Taguig, NCR" required />
+        </div>
+        <div class="field">
+          <label>Phone number</label>
+          <input type="tel" id="onboardPhone" placeholder="e.g. 09171234567" required />
+        </div>
+        <button type="submit" class="btn-primary" style="width:100%" id="onboardBtn">Finish creating account</button>
+        <button type="button" class="btn-outline" style="width:100%;margin-top:8px;" id="onboardCancelBtn">Cancel</button>
+      </form>
 
     </div>
   </div>

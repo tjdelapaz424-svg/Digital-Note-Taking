@@ -169,12 +169,17 @@ async function refreshDetail() {
         : '<span class="pill" style="background:#DDEEE2;color:#356B4B;">Submitted</span>';
     }
     const hasFeedback = nbDoc.exists && nbDoc.data().feedback && nbDoc.data().feedback.text;
+    const tabSwitches = nbDoc.exists && nbDoc.data().focusStats ? (nbDoc.data().focusStats.tabSwitches || 0) : 0;
+    let focusHtml = '<span class="pill focus-pill-ok">On task</span>';
+    if (tabSwitches > 5) focusHtml = `<span class="pill focus-pill-bad">${tabSwitches} tab switches</span>`;
+    else if (tabSwitches > 0) focusHtml = `<span class="pill focus-pill-warn">${tabSwitches} tab switch${tabSwitches === 1 ? '' : 'es'}</span>`;
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td>${escapeHtml(a.studentName || '')}</td>
       <td>${escapeHtml(a.studentUsername)}</td>
       <td>${statusHtml}</td>
       <td>${hasFeedback ? '<span class="pill" style="background:#E3D6ED;color:var(--green-dark);">Given</span>' : '<span style="color:#B7A9C7;font-size:12.5px;">None</span>'}</td>
+      <td>${focusHtml}</td>
       <td style="text-align:right;white-space:nowrap;">
         <button class="btn-outline btn-small view-btn">${nbDoc.exists ? 'View notebook' : 'No notes yet'}</button>
         <button class="btn-outline btn-small feedback-btn">Feedback</button>

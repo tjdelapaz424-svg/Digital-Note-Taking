@@ -26,7 +26,7 @@ function switchTab(role) {
 
 async function loadAccounts() {
   const body = document.getElementById('accountsBody');
-  body.innerHTML = '<tr><td colspan="8">Loading...</td></tr>';
+  body.innerHTML = '<tr><td colspan="9">Loading...</td></tr>';
   const snap = await db.collection('users').where('role', '==', currentRole).get();
   currentRows = [];
   snap.forEach(doc => currentRows.push({ id: doc.id, ...doc.data() }));
@@ -40,18 +40,24 @@ function renderRows() {
     if (!searchQuery) return true;
     const name = (u.name || '').toLowerCase();
     const region = (u.region || '').toLowerCase();
-    return name.includes(searchQuery) || region.includes(searchQuery);
+    const gmail = (u.email || u.username || '').toLowerCase();
+    return name.includes(searchQuery) || region.includes(searchQuery) || gmail.includes(searchQuery);
   });
 
   document.getElementById('accountsEmpty').classList.toggle('hidden', rows.length > 0);
   body.innerHTML = '';
   rows.forEach(u => {
     const active = u.active !== false;
+    const gmail = u.email || u.username || '';
+    const passwordCell = u.authProvider === 'google'
+      ? '<span class="pill" style="background:#E3D6ED;color:var(--green-dark);">Google sign-in</span>'
+      : `<span style="font-family:monospace;">${escapeHtml(u.password || '')}</span>`;
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td>${escapeHtml(u.name || '')}</td>
-      <td>${escapeHtml(u.username || '')}</td>
-      <td style="font-family:monospace;">${escapeHtml(u.password || '')}</td>
+      <td>${escapeHtml(gmail)}</td>
+      <td>${escapeHtml(u.phone || '—')}</td>
+      <td>${passwordCell}</td>
       <td>${u.age ?? ''}</td>
       <td>${escapeHtml(u.sex || '')}</td>
       <td>${escapeHtml(u.region || '')}</td>
@@ -88,6 +94,8 @@ async function loadStats() {
     db.collection('notebooks').get()
   ]);
   document.getElementById('statTotalAccounts').innerText = teachersSnap.size + studentsSnap.size;
+  document.getElementById('statTeacherAccounts').innerText = teachersSnap.size;
+  document.getElementById('statStudentAccounts').innerText = studentsSnap.size;
   document.getElementById('statTotalClasses').innerText = classesSnap.size;
   let submittedCount = 0;
   notebooksSnap.forEach(doc => { if (doc.data().submitted) submittedCount++; });
