@@ -94,11 +94,16 @@ async function loadClasses() {
     const tagClass = en.status === 'approved' ? 'tag-approved' : en.status === 'rejected' ? 'tag-rejected' : 'tag-pending';
     const tagLabel = en.status === 'approved' ? 'Approved' : en.status === 'rejected' ? 'Rejected' : 'Pending approval';
     tile.innerHTML = `
+      <button class="tile-delete-btn" title="Leave class" aria-label="Leave class">✕</button>
       <span class="tag ${tagClass}">${tagLabel}</span>${feedbackTag}
       <h3 style="margin-bottom:2px;">${escapeHtml(className)}</h3>
       <div style="font-size:12.5px;color:#7A8A81;">Teacher: ${escapeHtml(teacherUsername)}</div>
       ${dueHtml}
     `;
+    tile.querySelector('.tile-delete-btn').addEventListener('click', (e) => {
+      e.stopPropagation();
+      leaveClass(en, className);
+    });
     if (en.status === 'approved') {
       tile.addEventListener('click', () => {
         window.location.href = `notebook.html?class=${en.classCode}&student=${session.usernameKey}&mode=edit`;
@@ -108,6 +113,21 @@ async function loadClasses() {
       tile.style.opacity = '.85';
     }
     grid.appendChild(tile);
+  }
+}
+
+async function leaveClass(enrollment, className) {
+  const msg = enrollment.status === 'approved'
+    ? `Leave "${className}"? You'll need a new join code from your teacher to get back in. Your notebook notes for this class are kept in case you rejoin.`
+    : `Cancel your request to join "${className}"?`;
+  if (!confirm(msg)) return;
+  try {
+    await db.collection('enrollments').doc(enrollment.id).delete();
+    showToast(enrollment.status === 'approved' ? 'You left the class.' : 'Request cancelled.');
+    loadClasses();
+  } catch (err) {
+    console.error(err);
+    showToast('Could not do that. Check your connection.', true);
   }
 }
 
