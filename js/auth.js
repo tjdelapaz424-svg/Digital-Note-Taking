@@ -92,7 +92,7 @@ let pendingGoogleUser = null; // { uid, email, displayName }
 function hideGoogleOnboarding() {
   googleOnboardForm.classList.add('hidden');
   loginForm.classList.remove('hidden');
-  document.getElementById('googleSignInWrap').classList.remove('hidden');
+  document.getElementById('googleSignInWrap').classList.toggle('hidden', selectedRole === 'admin');
   toRegisterWrap.classList.toggle('hidden', selectedRole === 'admin');
   const forgotWrap = document.getElementById('forgotWrap');
   forgotWrap.classList.toggle('hidden', selectedRole === 'admin');
