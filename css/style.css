@@ -283,6 +283,12 @@ label{
   border-radius:6px;
   margin-top:6px;
 }
+.tile-delete-btn{
+  position:absolute;top:10px;right:10px;width:24px;height:24px;padding:0;
+  border-radius:50%;background:transparent;color:#B7A9C7;font-size:13px;line-height:1;
+  display:flex;align-items:center;justify-content:center;
+}
+.tile-delete-btn:hover{background:#FBE0E0;color:var(--red);}
 
 table{width:100%;border-collapse:collapse;font-size:13.5px;}
 th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);}
@@ -581,4 +587,5 @@ tr:last-child td{border-bottom:none;}
   .tool-btn,.color-dot,.nb-text-box .del-x{min-height:44px;}
   .color-dot{min-width:30px;min-height:30px;}
   .nb-text-box .del-x{width:28px;height:28px;line-height:28px;display:block;}
+  .tile-delete-btn{width:30px;height:30px;}
 }

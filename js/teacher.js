@@ -41,12 +41,17 @@ async function loadClasses() {
     tile.className = 'class-tile';
     const dueBadge = c.dueDate ? `<div style="font-size:12px;color:#7A6B90;margin-top:6px;">Due ${dueDateLabel(c.dueDate)}</div>` : '';
     tile.innerHTML = `
+      <button class="tile-delete-btn" title="Delete class" aria-label="Delete class">✕</button>
       <div>${pendingCount > 0 ? `<span class="tag tag-pending">${pendingCount} pending</span>` : ''}</div>
       <h3 style="margin-bottom:2px;">${escapeHtml(c.className)}</h3>
       <div style="font-size:12.5px;color:#7A8A81;">Join code</div>
       <div class="code-pill">${c.code}</div>
       ${dueBadge}
     `;
+    tile.querySelector('.tile-delete-btn').addEventListener('click', (e) => {
+      e.stopPropagation();
+      deleteClass(c);
+    });
     tile.addEventListener('click', () => openClassDetail(c));
     grid.appendChild(tile);
   }
@@ -124,6 +129,41 @@ document.getElementById('closeDetailBtn').addEventListener('click', () => {
   document.getElementById('classDetail').classList.add('hidden');
   selectedClass = null;
 });
+
+document.getElementById('deleteClassBtn').addEventListener('click', () => {
+  if (selectedClass) deleteClass(selectedClass);
+});
+
+async function deleteClass(c) {
+  const confirmMsg = `Delete "${c.className}"? This removes the class, every student's join request/enrollment for it, and every notebook submitted for it. This cannot be undone.`;
+  if (!confirm(confirmMsg)) return;
+
+  const btn = document.getElementById('deleteClassBtn');
+  if (btn) { btn.disabled = true; btn.innerText = 'Deleting...'; }
+  try {
+    const [enrollSnap, notebookSnap] = await Promise.all([
+      db.collection('enrollments').where('classCode', '==', c.code).get(),
+      db.collection('notebooks').where('classCode', '==', c.code).get()
+    ]);
+    const batch = db.batch();
+    enrollSnap.forEach(doc => batch.delete(doc.ref));
+    notebookSnap.forEach(doc => batch.delete(doc.ref));
+    batch.delete(db.collection('classes').doc(c.code));
+    await batch.commit();
+
+    if (selectedClass && selectedClass.code === c.code) {
+      document.getElementById('classDetail').classList.add('hidden');
+      selectedClass = null;
+    }
+    showToast('Class deleted.');
+    loadClasses();
+  } catch (err) {
+    console.error(err);
+    showToast('Could not delete the class. Check your connection.', true);
+  } finally {
+    if (btn) { btn.disabled = false; btn.innerText = 'Delete class'; }
+  }
+}
 
 async function refreshDetail() {
   if (!selectedClass) return;
