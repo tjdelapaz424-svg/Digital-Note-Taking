@@ -118,6 +118,7 @@ function showGoogleOnboarding(googleUser) {
 }
 
 document.getElementById('onboardCancelBtn').addEventListener('click', () => {
+  firebase.auth().signOut().catch(() => {});
   hideGoogleOnboarding();
   showRegisterForm(false);
 });
@@ -183,8 +184,12 @@ async function finishGoogleSignIn(result) {
   }
 
   const profile = doc.data();
-  if (profile.active === false) throw new Error('This account has been deactivated. Contact your admin.');
+  if (profile.active === false) {
+    await firebase.auth().signOut().catch(() => {});
+    throw new Error('This account has been deactivated. Contact your admin.');
+  }
   if (profile.role !== selectedRole) {
+    await firebase.auth().signOut().catch(() => {});
     throw new Error(`This Google account is registered as a ${profile.role}. Select the ${profile.role} tab to continue.`);
   }
 
@@ -403,6 +408,20 @@ document.getElementById('forgotSubmitBtn').addEventListener('click', async () =>
     forgotSetError('Could not reach the server. Check your internet connection.');
   }
 });
+
+// If a previous Google sign-in attempt was abandoned or rejected partway
+// through (tab closed during onboarding, role mismatch, etc.), Firebase Auth
+// can be left signed in with no matching app session. Clean that up here so
+// the next "Continue with Google" click starts from a clean state.
+(function clearOrphanedFirebaseAuthSession() {
+  if (getSession()) return; // a real app session exists, nothing to clean up
+  if (window.firebase && typeof firebase.auth === 'function') {
+    const unsubscribe = firebase.auth().onAuthStateChanged(user => {
+      unsubscribe(); // only check the state that existed at page load, not future sign-ins
+      if (user) firebase.auth().signOut().catch(() => {});
+    });
+  }
+})();
 
 // If already logged in, skip straight to the right dashboard
 (function redirectIfLoggedIn() {

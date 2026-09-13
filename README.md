@@ -1,6 +1,39 @@
 # Notebook — school notes app
 
-## What's new in THIS version
+## ⚠️ Republish your Firestore rules before using this version
+
+This update adds three new collections (`flashcardDecks`, `challenges`,
+`challengeAttempts`). Your Firestore rules only allow the collections they
+explicitly list, so **copy the new `firestore.rules` into Firebase Console →
+Firestore Database → Rules → Publish**, or Flashcards/Challenges will fail
+silently with permission errors.
+
+## What's new in THIS version (Gamification)
+
+**Study streaks:** the student dashboard now shows a day streak (🔥), longest
+streak, quizzes completed, and flashcard sessions. The streak bumps once per
+calendar day whenever a student generates AI study material, finishes a
+flashcard review session, completes a class challenge, or submits a
+notebook. Stored on the user's own account doc under `studyStats`.
+
+**Flashcards (spaced repetition):** in a notebook's AI Study Tools results
+(quiz or flashcards), a new **💾 Save as flashcard deck** button saves the
+generated cards to a new **Flashcards** tab in the student sidebar. Review
+there uses a simplified SM-2 spaced-repetition schedule — rate each card
+Again/Hard/Good/Easy and it reschedules itself further out each time you get
+it right, closer if you don't.
+
+**Peer challenges & leaderboard:** from a quiz's AI Study Tools results, a
+**🏆 Challenge my class** button publishes it to everyone in that class. A
+new **Challenges** tab lists challenges from all of a student's classes;
+taking one records a score and shows a leaderboard (ranked by percent
+correct) against classmates who've also taken it.
+
+**Read-aloud:** every AI Study Tools question/flashcard and every flashcard
+in review now has a 🔊 button using the browser's built-in Web Speech API
+(free, no API key, works offline — support/voice quality varies by browser).
+
+## What's new in the previous version
 
 **Accounts:** sign-up is now Gmail-only (`@gmail.com`, enforced on the
 register form) and every account also collects a phone number. "Continue

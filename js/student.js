@@ -188,5 +188,19 @@ bellBtn.addEventListener('click', () => {
   notifPanel.classList.toggle('hidden');
 });
 
+async function loadStreakWidget() {
+  try {
+    const doc = await db.collection('users').doc(session.usernameKey).get();
+    const stats = (doc.exists && doc.data().studyStats) || {};
+    document.getElementById('statStreak').innerText = `${stats.currentStreak || 0} 🔥`;
+    document.getElementById('statLongestStreak').innerText = stats.longestStreak || 0;
+    document.getElementById('statQuizzes').innerText = stats.quizzesCompleted || 0;
+    document.getElementById('statFlashSessions').innerText = stats.flashcardSessions || 0;
+  } catch (err) {
+    console.error('Could not load streak stats', err);
+  }
+}
+
 loadClasses();
 refreshNotifications();
+loadStreakWidget();

@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="theme-color" content="#6C4AB6" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="mobile-web-app-capable" content="yes" />
+<title>Flashcards | Notebook</title>
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+<div class="app-shell">
+  <div class="sidebar">
+    <div class="brand-icon"><svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"><rect x="8" y="6" width="40" height="52" rx="7" fill="#F2A6C4"/><rect x="8" y="6" width="8" height="52" rx="4" fill="#E37FA6"/><line x1="24" y1="20" x2="42" y2="20" stroke="#fff" stroke-width="3" stroke-linecap="round"/><line x1="24" y1="29" x2="42" y2="29" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".85"/><line x1="24" y1="38" x2="36" y2="38" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".7"/><rect x="38" y="2" width="9" height="30" rx="4.5" transform="rotate(40 42.5 17)" fill="#33234A" stroke="#fff" stroke-width="1.2"/></svg><span class="brand" style="font-size:20px;">Notebook</span></div>
+    <div class="who" id="whoLabel">Student</div>
+    <nav>
+      <a href="student.html"><span class="label">My Classes</span></a>
+      <a href="history.html"><span class="label">History</span></a>
+      <a class="active"><span class="label">Flashcards</span></a>
+      <a href="challenges.html"><span class="label">Challenges</span></a>
+    </nav>
+    <button class="navlink logout btn-outline" id="logoutBtn" style="color:#fff;border-color:rgba(255,255,255,.4);">Log out</button>
+  </div>
+
+  <div class="main">
+    <div class="topbar-actions">
+      <div>
+        <div class="page-title">Flashcards</div>
+        <div class="page-sub">Decks you've saved from AI Study Tools, reviewed with spaced repetition.</div>
+      </div>
+    </div>
+
+    <div id="deckListView">
+      <div id="deckGrid" class="grid-cards"></div>
+      <div id="deckEmpty" class="empty-state hidden">
+        No decks yet. Open a notebook, generate flashcards under <strong>AI Study Tools</strong>, then tap
+        <strong>Save as flashcard deck</strong>.
+      </div>
+    </div>
+
+    <div id="reviewView" class="hidden">
+      <div class="topbar-actions" style="margin-bottom:14px;">
+        <h3 id="reviewDeckTitle" style="margin:0;">Deck</h3>
+        <button class="btn-outline btn-small" id="backToDecksBtn">← Back to decks</button>
+      </div>
+      <div id="reviewDone" class="empty-state hidden">
+        🎉 No cards due right now in this deck. Great work — check back tomorrow.
+      </div>
+      <div id="reviewCardWrap" class="hidden">
+        <div class="review-progress" id="reviewProgress"></div>
+        <div class="flash-card review-flash-card" id="reviewCard"></div>
+        <div class="review-rate-row hidden" id="reviewRateRow">
+          <button class="rate-btn rate-again" data-rating="again">Again</button>
+          <button class="rate-btn rate-hard" data-rating="hard">Hard</button>
+          <button class="rate-btn rate-good" data-rating="good">Good</button>
+          <button class="rate-btn rate-easy" data-rating="easy">Easy</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="js/firebase-config.js"></script>
+<script src="js/common.js"></script>
+<script src="js/flashcards.js"></script>
+<div class="credit-footer">Created by TJ Dela Paz</div>
+</body>
+</html>

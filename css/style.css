@@ -577,6 +577,26 @@ tr:last-child td{border-bottom:none;}
   display:flex;align-items:center;justify-content:center;font-size:15px;margin-bottom:12px;
 }
 .flash-card .flash-hint{display:block;font-size:11px;color:#8E7BA3;margin-top:8px;}
+.study-choice.selected{background:#E3D6ED;border-color:var(--green);color:var(--green-dark);}
+
+.speaker-btn{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:26px;height:26px;border-radius:50%;background:rgba(108,74,182,.1);
+  font-size:13px;margin-left:8px;vertical-align:middle;padding:0;
+}
+.speaker-btn:hover{background:rgba(108,74,182,.2);}
+
+.study-action-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;}
+
+/* ---------- Flashcard spaced-repetition review ---------- */
+.review-progress{text-align:center;font-size:12.5px;color:#7A8A81;margin-bottom:10px;}
+.review-flash-card{min-height:180px;font-size:19px;position:relative;}
+.review-rate-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:14px;}
+.rate-btn{padding:12px 8px;border-radius:10px;color:#fff;font-size:13px;font-weight:700;}
+.rate-again{background:var(--red);}
+.rate-hard{background:#C97A1F;}
+.rate-good{background:var(--green);}
+.rate-easy{background:var(--sage);color:var(--green-dark);}
 
 /* ---------- Focus / tab-switch badge (teacher roster) ---------- */
 .focus-pill-ok{background:#DDEEE2;color:#356B4B;}

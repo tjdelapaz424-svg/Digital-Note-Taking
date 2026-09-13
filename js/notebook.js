@@ -816,7 +816,10 @@ document.getElementById('generateAiStudyBtn').addEventListener('click', async ()
     });
     if (!res.ok) throw new Error('Server returned ' + res.status);
     const data = await res.json();
-    renderStudyResults(mode, data.items || []);
+    lastStudyMode = mode;
+    lastStudyItems = data.items || [];
+    renderStudyResults(mode, lastStudyItems);
+    recordStudyActivity(session.usernameKey);
   } catch (err) {
     console.error(err);
     aiStudyLoading.classList.add('hidden');
@@ -825,6 +828,19 @@ document.getElementById('generateAiStudyBtn').addEventListener('click', async ()
     aiStudyError.classList.remove('hidden');
   }
 });
+
+let lastStudyMode = null;
+let lastStudyItems = [];
+
+function speakerButton(text) {
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'speaker-btn';
+  btn.title = 'Read aloud';
+  btn.innerText = '🔊';
+  btn.addEventListener('click', (e) => { e.stopPropagation(); speakText(text); });
+  return btn;
+}
 
 function renderStudyResults(mode, items) {
   aiStudyLoading.classList.add('hidden');
@@ -838,6 +854,7 @@ function renderStudyResults(mode, items) {
       const card = document.createElement('div');
       card.className = 'study-card';
       card.innerHTML = `<div class="q-num">Question ${i + 1}</div><div class="q-text">${escapeHtml(q.question || '')}</div>`;
+      card.querySelector('.q-text').appendChild(speakerButton(q.question || ''));
       (q.choices || []).forEach((choice, ci) => {
         const btn = document.createElement('button');
         btn.type = 'button';
@@ -861,22 +878,93 @@ function renderStudyResults(mode, items) {
       card.className = 'flash-card';
       card.dataset.showing = 'front';
       card.innerHTML = `<div>${escapeHtml(f.front || '')}<span class="flash-hint">Tap to flip</span></div>`;
+      card.appendChild(speakerButton(f.front || ''));
       card.addEventListener('click', () => {
         const showingFront = card.dataset.showing === 'front';
         card.dataset.showing = showingFront ? 'back' : 'front';
-        card.innerHTML = `<div>${escapeHtml(showingFront ? (f.back || '') : (f.front || ''))}<span class="flash-hint">Tap to flip</span></div>`;
+        const shownText = showingFront ? (f.back || '') : (f.front || '');
+        card.innerHTML = `<div>${escapeHtml(shownText)}<span class="flash-hint">Tap to flip</span></div>`;
+        card.appendChild(speakerButton(shownText));
       });
       aiStudyResults.appendChild(card);
     });
   }
 
+  // ----- Gamification actions -----
+  const actionRow = document.createElement('div');
+  actionRow.className = 'study-action-row';
+
+  const saveDeckBtn = document.createElement('button');
+  saveDeckBtn.className = 'btn-sage btn-small';
+  saveDeckBtn.innerText = '💾 Save as flashcard deck';
+  saveDeckBtn.addEventListener('click', saveLastResultsAsDeck);
+  actionRow.appendChild(saveDeckBtn);
+
+  if (mode === 'quiz' && classCode && session.role === 'student') {
+    const challengeBtn = document.createElement('button');
+    challengeBtn.className = 'btn-sage btn-small';
+    challengeBtn.innerText = '🏆 Challenge my class';
+    challengeBtn.addEventListener('click', publishChallenge);
+    actionRow.appendChild(challengeBtn);
+  }
+  aiStudyResults.appendChild(actionRow);
+
   const doneBtn = document.createElement('button');
   doneBtn.className = 'btn-outline';
   doneBtn.style.width = '100%';
-  doneBtn.style.marginTop = '4px';
+  doneBtn.style.marginTop = '10px';
   doneBtn.innerText = 'Close';
   doneBtn.addEventListener('click', () => aiStudyModal.classList.add('hidden'));
   aiStudyResults.appendChild(doneBtn);
+}
+
+async function saveLastResultsAsDeck() {
+  if (!lastStudyItems.length) return;
+  const title = prompt('Name this flashcard deck:', nbTitle.innerText.replace(' — Notebook', '')) ;
+  if (title === null) return;
+  const cards = lastStudyMode === 'flashcards'
+    ? lastStudyItems.map((f, i) => ({ id: 'c' + i, front: f.front || '', back: f.back || '', ...newCardSchedule() }))
+    : lastStudyItems.map((q, i) => ({
+        id: 'c' + i,
+        front: q.question || '',
+        back: (q.choices && q.correctIndex != null) ? (q.choices[q.correctIndex] || '') : '',
+        ...newCardSchedule()
+      }));
+  try {
+    const deckId = `${session.usernameKey}__${Date.now()}`;
+    await db.collection('flashcardDecks').doc(deckId).set({
+      studentKey: session.usernameKey,
+      title: title.trim() || 'Untitled deck',
+      classCode: classCode || null,
+      cards,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    showToast('Deck saved! Find it under Flashcards.');
+  } catch (err) {
+    console.error(err);
+    showToast('Could not save the deck. Check your connection.', true);
+  }
+}
+
+async function publishChallenge() {
+  if (!lastStudyItems.length || lastStudyMode !== 'quiz') return;
+  const title = prompt('Name this challenge for your classmates:', nbTitle.innerText.replace(' — Notebook', ''));
+  if (title === null) return;
+  try {
+    const challengeId = `${classCode}__${Date.now()}`;
+    await db.collection('challenges').doc(challengeId).set({
+      classCode,
+      createdBy: session.usernameKey,
+      createdByName: session.name || session.username,
+      title: title.trim() || 'Class challenge',
+      items: lastStudyItems,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    showToast('Challenge published! Your classmates can find it under Challenges.');
+  } catch (err) {
+    console.error(err);
+    showToast('Could not publish the challenge. Check your connection.', true);
+  }
 }
 
 document.getElementById('submitBtn').addEventListener('click', async () => {
@@ -886,6 +974,7 @@ document.getElementById('submitBtn').addEventListener('click', async () => {
   await saveNotebook(true);
   renderStatus();
   renderDueAndFeedback();
+  recordStudyActivity(session.usernameKey);
   showToast('Notebook submitted to your teacher.');
 });
 

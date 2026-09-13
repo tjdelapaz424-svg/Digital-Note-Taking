@@ -15,6 +15,8 @@
     <nav>
       <a class="active" id="navClasses"><span class="label">My Classes</span></a>
       <a id="navHistory" href="history.html"><span class="label">History</span></a>
+      <a href="flashcards.html"><span class="label">Flashcards</span></a>
+      <a href="challenges.html"><span class="label">Challenges</span></a>
     </nav>
     <button class="navlink logout btn-outline" id="logoutBtn" style="color:#fff;border-color:rgba(255,255,255,.4);">Log out</button>
   </div>
@@ -33,6 +35,13 @@
       </div>
     </div>
     <div id="notifPanel" class="notif-panel hidden"></div>
+
+    <div class="stat-row">
+      <div class="stat-card"><div class="stat-num" id="statStreak">0 🔥</div><div class="stat-label">Day streak</div></div>
+      <div class="stat-card"><div class="stat-num" id="statLongestStreak">0</div><div class="stat-label">Longest streak</div></div>
+      <div class="stat-card"><div class="stat-num" id="statQuizzes">0</div><div class="stat-label">Quizzes completed</div></div>
+      <div class="stat-card"><div class="stat-num" id="statFlashSessions">0</div><div class="stat-label">Flashcard sessions</div></div>
+    </div>
 
     <div id="classGrid" class="grid-cards"></div>
     <div id="classEmpty" class="empty-state hidden">You haven't joined any classes yet.</div>

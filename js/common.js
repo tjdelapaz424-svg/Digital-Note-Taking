@@ -108,6 +108,76 @@ function escapeHtml(str) {
   return div.innerHTML;
 }
 
+// ----- Study streaks -----
+// A student "studies" by generating AI study material, finishing a flashcard
+// review session, completing a class challenge, or submitting a notebook.
+// This bumps their streak at most once per real calendar day.
+async function recordStudyActivity(usernameKey, kind) {
+  if (!usernameKey) return;
+  try {
+    const ref = db.collection('users').doc(usernameKey);
+    const doc = await ref.get();
+    if (!doc.exists) return;
+    const data = doc.data();
+    const stats = Object.assign(
+      { currentStreak: 0, longestStreak: 0, lastStudyDate: null, quizzesCompleted: 0, flashcardSessions: 0 },
+      data.studyStats || {}
+    );
+    const todayKey = new Date().toISOString().slice(0, 10);
+    if (stats.lastStudyDate !== todayKey) {
+      const yesterdayKey = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+      stats.currentStreak = stats.lastStudyDate === yesterdayKey ? (stats.currentStreak || 0) + 1 : 1;
+      stats.longestStreak = Math.max(stats.longestStreak || 0, stats.currentStreak);
+      stats.lastStudyDate = todayKey;
+    }
+    if (kind === 'quiz') stats.quizzesCompleted = (stats.quizzesCompleted || 0) + 1;
+    if (kind === 'flashcards') stats.flashcardSessions = (stats.flashcardSessions || 0) + 1;
+    await ref.update({ studyStats: stats });
+    return stats;
+  } catch (err) {
+    console.error('recordStudyActivity failed', err);
+  }
+}
+
+// ----- Spaced repetition (simplified SM-2) -----
+function newCardSchedule() {
+  return { interval: 0, ease: 2.5, reps: 0, dueDate: new Date().toISOString().slice(0, 10) };
+}
+// rating: 'again' | 'hard' | 'good' | 'easy'
+function nextCardSchedule(card, rating) {
+  let { interval = 0, ease = 2.5 } = card;
+  let reps = card.reps || 0;
+  if (rating === 'again') {
+    reps = 0;
+    interval = 0; // due again today
+    ease = Math.max(1.3, ease - 0.2);
+  } else {
+    reps += 1;
+    if (rating === 'hard') { interval = Math.max(1, Math.round(interval * 1.2)) || 1; ease = Math.max(1.3, ease - 0.15); }
+    else if (rating === 'good') { interval = interval === 0 ? 1 : Math.round(interval * ease); }
+    else if (rating === 'easy') { interval = interval === 0 ? 3 : Math.round(interval * ease * 1.3); ease += 0.15; }
+  }
+  const due = new Date();
+  due.setDate(due.getDate() + Math.max(0, interval));
+  return { interval, ease, reps, dueDate: due.toISOString().slice(0, 10) };
+}
+function isCardDue(card) {
+  return !card.dueDate || card.dueDate <= new Date().toISOString().slice(0, 10);
+}
+
+// ----- Text-to-speech (Web Speech API — free, in-browser, Chrome/Edge/Safari support varies) -----
+function speakText(text) {
+  if (!text) return;
+  if (!('speechSynthesis' in window)) {
+    showToast('Text-to-speech isn\'t supported in this browser.', true);
+    return;
+  }
+  window.speechSynthesis.cancel(); // stop anything already reading
+  const utter = new SpeechSynthesisUtterance(text);
+  utter.rate = 0.98;
+  window.speechSynthesis.speak(utter);
+}
+
 function showToast(msg, isError = false) {
   let t = document.getElementById('sn-toast');
   if (!t) {
